@@ -15,7 +15,8 @@ Authoritative intent lives in the [mentorhub Specifications](https://github.com/
 | [aws-platform.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/aws-platform.yaml) | Region, account IDs, org variables |
 | [DEPENDENCY_MOVE.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/DEPENDENCY_MOVE.md) | OIDC roles, CodeArtifact URLs, CI patterns |
 | [CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md) | Dev runtime tasks |
-| [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) | Index, timeline, and task ordering |
+| [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) | Tactical task index and timeline |
+| [CLOUDFORMATION_PLAN.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_PLAN.md) | Strategic plan: milestones, governance, decisions |
 
 ## Task workflow
 
