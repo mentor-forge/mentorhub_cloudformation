@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "mentorhub"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "AwsRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "DevAccountId",
+    "ParameterValue": "TBD"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.0.0.0/16"
+  }
+]

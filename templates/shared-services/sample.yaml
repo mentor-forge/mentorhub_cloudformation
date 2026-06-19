@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample template for cfn-lint CI bootstrap. Remove when real stacks land.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: mentorhub
+
+Resources:
+  SampleBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${ProjectName}-cf-bootstrap-sample-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true

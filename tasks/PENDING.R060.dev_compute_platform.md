@@ -1,0 +1,49 @@
+# R060 – Dev: ECS compute platform
+
+**Status**: Pending  
+**Task Type**: Infrastructure  
+**Run Mode**: Sequential
+
+## Goal
+
+Deploy Fargate ECS cluster, CloudWatch log groups, and task execution role (ECR pull, Secrets Manager, logs).
+
+## Context / Input files
+
+- [mentorhub/Specifications/CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md)
+- [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
+- Network stack outputs from R040
+
+## Requirements
+
+- [ ] **R060.1** Template `templates/dev/ecs-cluster.yaml` — Fargate cluster + CloudWatch log groups
+- [ ] **R060.2** ECS task execution role: ECR pull, Secrets Manager read, CloudWatch logs
+- [ ] **R060.3** Validate: empty cluster visible in console
+
+## Validation expectations
+
+- Cluster and IAM roles deploy without service definitions.
+- Execution role policy allows ECR (shared-services account) and secrets from R050.
+
+## Dependencies / Ordering
+
+- **After:** `PENDING.R040.dev_governance_network.md`
+- **Before:** `PENDING.R070.dev_edge_services.md`, `PENDING.R080.pilot_coordinator.md`
+
+## Exit criteria
+
+Empty ECS cluster ready for service stacks.
+
+## Change control checklist
+
+- [ ] Cluster and roles deployed.
+- [ ] Console verification complete.
+- [ ] Scoped commit referencing R060.
+
+## Implementation notes
+
+**Summary of changes**
+
+**Validation results**
+
+**Follow-up tasks**

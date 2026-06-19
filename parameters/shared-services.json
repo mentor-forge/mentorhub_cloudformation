@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "mentorhub"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "shared-services"
+  },
+  {
+    "ParameterKey": "AwsRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "SharedServicesAccountId",
+    "ParameterValue": "560167829275"
+  },
+  {
+    "ParameterKey": "CodeArtifactDomain",
+    "ParameterValue": "mentor-forge"
+  },
+  {
+    "ParameterKey": "CodeArtifactPypiRepo",
+    "ParameterValue": "mentorhub-pypi"
+  },
+  {
+    "ParameterKey": "CodeArtifactNpmRepo",
+    "ParameterValue": "mentorhub-npm"
+  }
+]
