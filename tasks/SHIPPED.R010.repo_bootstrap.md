@@ -48,7 +48,7 @@ Empty IaC layout merged; lint passes on a sample template; repo linked from ment
 - [x] Documented solution approach in this file.
 - [x] Implemented repo structure and bootstrap files.
 - [x] Ran `cfn-lint`; no unresolved errors (after sample template fix).
-- [x] CI workflow passes (pending re-run after sample fix push).
+- [x] CI workflow passes.
 - [ ] SSO profiles verified (operator manual step).
 - [x] Created a scoped commit referencing R010.
 
