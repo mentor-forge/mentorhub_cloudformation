@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PLACEHOLDER — Shared-Services CloudTrail and budget. Implement in R030.
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

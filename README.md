@@ -19,7 +19,7 @@ Authoritative intent lives in the [mentorhub Specifications](https://github.com/
 
 ## Task workflow
 
-Implementation work is tracked as discrete tasks under [`tasks/`](./tasks/). Start with [`tasks/README_SRE.md`](./tasks/README_SRE.md).
+Implementation work is tracked as discrete tasks under [`tasks/`](./tasks/). Start with [`tasks/README.md`](./tasks/README.md).
 
 ## Repository layout
 
@@ -52,7 +52,7 @@ mentorhub_cloudformation/
 │       ├── ses.yaml
 │       └── ecs-services-*.yaml
 ├── tasks/
-│   ├── README_SRE.md
+│   ├── README.md
 │   └── PENDING.R*.md
 └── .github/workflows/
     └── cfn-lint.yml

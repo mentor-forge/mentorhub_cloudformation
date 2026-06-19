@@ -1,6 +1,28 @@
 This folder contains SRE / infrastructure tasks that a long-running agent session can execute one at a time, based on the context and instructions in each task file.
 
-Adapted from the API/SPA `tasks/README.md` pattern in MentorHub service repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
+Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
+
+**Checklist index:** [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md)
+
+### Task index
+
+| Task | Phase | Status | File |
+|------|-------|--------|------|
+| R010 | 0 | Shipped | [SHIPPED.R010.repo_bootstrap.md](./SHIPPED.R010.repo_bootstrap.md) |
+| R020 | 1 | Pending | [PENDING.R020.codeartifact_import.md](./PENDING.R020.codeartifact_import.md) |
+| R030 | 2 | Pending | [PENDING.R030.shared_services_oidc_ecr.md](./PENDING.R030.shared_services_oidc_ecr.md) |
+| R040 | 3A | Pending | [PENDING.R040.dev_governance_network.md](./PENDING.R040.dev_governance_network.md) |
+| R050 | 3B | Pending | [PENDING.R050.dev_data_secrets.md](./PENDING.R050.dev_data_secrets.md) |
+| R060 | 3C | Pending | [PENDING.R060.dev_compute_platform.md](./PENDING.R060.dev_compute_platform.md) |
+| R070 | 3D | Pending | [PENDING.R070.dev_edge_services.md](./PENDING.R070.dev_edge_services.md) |
+| R080 | 4 | Pending | [PENDING.R080.pilot_coordinator.md](./PENDING.R080.pilot_coordinator.md) |
+| R090 | 5 | Pending | [PENDING.R090.remaining_dev_services.md](./PENDING.R090.remaining_dev_services.md) |
+| R100 | 6 | Pending | [PENDING.R100.cicd_ecs_deploy.md](./PENDING.R100.cicd_ecs_deploy.md) |
+| R110 | 7 | Pending | [PENDING.R110.documentation_hygiene.md](./PENDING.R110.documentation_hygiene.md) |
+| R120 | 8 | Pending | [PENDING.R120.staging.md](./PENDING.R120.staging.md) |
+| R130 | 9 | Pending | [PENDING.R130.production.md](./PENDING.R130.production.md) |
+
+Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
 
 ### Task execution workflow
 
@@ -18,7 +40,7 @@ Adapted from the API/SPA `tasks/README.md` pattern in MentorHub service repos (`
    For every task, the agent should:
    - **Review context**: Read all referenced specification files in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).
    - **Plan changes**: Summarize the planned approach in the notes section of the task file.
-   - **Implement changes**: Add or update templates, parameters, scripts, workflows, and docs as required.
+   - **Implement changes**: Add or update templates under `templates/`, parameters, scripts, workflows, and docs as required.
    - **Template lint (`cfn-lint`)**:
      - Run `cfn-lint templates/**/*.yaml` (or task-specific paths).
      - Fix all errors; document intentional warnings in the task file.
@@ -35,16 +57,17 @@ Adapted from the API/SPA `tasks/README.md` pattern in MentorHub service repos (`
 
 4. **Completion and documentation**
    - Update the task file's **status** and **implementation notes**.
+   - Rename the file prefix from `PENDING.` to `SHIPPED.` when done.
    - If follow-ups are discovered, add them as new tasks instead of over-expanding the current one.
-   - Update [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) task index if ordering or scope changes.
+   - Update [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) if ordering or scope changes.
 
 ### Task ordering
 
-- **Primary mechanism**: A task's filename starts with a sortable prefix: `PENDING.R010_`, `PENDING.R020_`, etc.
+- **Primary mechanism**: A task's filename starts with a sortable prefix: `PENDING.R020_`, `PENDING.R030_`, etc.
 - **Execution order**:
   - Sort all task files by filename.
   - Skip tasks explicitly marked as **Run as needed**.
-  - Skip tasks with status **Shipped**.
+  - Skip tasks with status **Shipped** (or `SHIPPED.` filename prefix).
   - Process remaining tasks in sorted order.
 - **Manual overrides**:
   - If a task must run earlier/later, note this in the task's **Dependencies / Ordering** section.

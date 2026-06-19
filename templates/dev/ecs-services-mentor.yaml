@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PLACEHOLDER — Mentor API and SPA ECS services. Implement in R090.
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

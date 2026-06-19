@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "mentorhub"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "staging"
+  },
+  {
+    "ParameterKey": "AwsRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "StagingAccountId",
+    "ParameterValue": "TBD"
+  }
+]

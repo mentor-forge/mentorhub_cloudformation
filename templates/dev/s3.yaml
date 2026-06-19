@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PLACEHOLDER — S3 application buckets. Implement in R070.
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

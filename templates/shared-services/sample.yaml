@@ -1,6 +1,0 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: Bootstrap placeholder for cfn-lint CI. Replace with real stacks in R020+.
-
-Resources:
-  BootstrapPlaceholder:
-    Type: AWS::CloudFormation::WaitConditionHandle
