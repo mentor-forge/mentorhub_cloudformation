@@ -1,6 +1,88 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: PLACEHOLDER — CodeArtifact domain and repositories (IMPORT). Implement in R020.
+Description: >-
+  MentorHub Shared-Services CodeArtifact domain and repositories.
+  Import existing resources per Specifications/INFO.md (R020). Do not recreate.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: mentorhub
+  Environment:
+    Type: String
+    Default: shared-services
+  AwsRegion:
+    Type: String
+    Default: us-east-1
+  SharedServicesAccountId:
+    Type: String
+    Default: "560167829275"
+    AllowedPattern: "^[0-9]{12}$"
+  CodeArtifactDomain:
+    Type: String
+    Default: mentor-forge
+    AllowedPattern: "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+  CodeArtifactPypiRepo:
+    Type: String
+    Default: mentorhub-pypi
+  CodeArtifactNpmRepo:
+    Type: String
+    Default: mentorhub-npm
 
 Resources:
-  Placeholder:
-    Type: AWS::CloudFormation::WaitConditionHandle
+  MentorForgeDomain:
+    Type: AWS::CodeArtifact::Domain
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DomainName: !Ref CodeArtifactDomain
+      # As-built KMS key from INFO.md — required for import property match.
+      EncryptionKey: !Sub "arn:aws:kms:${AwsRegion}:${SharedServicesAccountId}:key/1cccc7d9-0b63-45e3-8ca8-655a755bf295"
+
+  PypiRepository:
+    Type: AWS::CodeArtifact::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DomainName: !GetAtt MentorForgeDomain.Name
+      RepositoryName: !Ref CodeArtifactPypiRepo
+      Description: MentorHub internal PyPI + PyPI upstream
+      ExternalConnections:
+        - public:pypi
+
+  NpmRepository:
+    Type: AWS::CodeArtifact::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DomainName: !GetAtt MentorForgeDomain.Name
+      RepositoryName: !Ref CodeArtifactNpmRepo
+      Description: MentorHub internal npm + npmjs upstream
+      ExternalConnections:
+        - public:npmjs
+
+Outputs:
+  DomainName:
+    Description: CodeArtifact domain name
+    Value: !GetAtt MentorForgeDomain.Name
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-codeartifact-domain"
+
+  DomainArn:
+    Description: CodeArtifact domain ARN
+    Value: !GetAtt MentorForgeDomain.Arn
+
+  PypiRepositoryName:
+    Description: PyPI repository name
+    Value: !GetAtt PypiRepository.Name
+
+  PypiRepositoryArn:
+    Description: PyPI repository ARN
+    Value: !GetAtt PypiRepository.Arn
+
+  NpmRepositoryName:
+    Description: npm repository name
+    Value: !GetAtt NpmRepository.Name
+
+  NpmRepositoryArn:
+    Description: npm repository ARN
+    Value: !GetAtt NpmRepository.Arn

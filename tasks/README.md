@@ -9,7 +9,7 @@ Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_co
 | Task | Phase | Status | File |
 |------|-------|--------|------|
 | R010 | 0 | Shipped | [SHIPPED.R010.repo_bootstrap.md](./SHIPPED.R010.repo_bootstrap.md) |
-| R020 | 1 | Pending | [PENDING.R020.codeartifact_import.md](./PENDING.R020.codeartifact_import.md) |
+| R020 | 1 | Running | [RUNNING.R020.codeartifact_import.md](./RUNNING.R020.codeartifact_import.md) |
 | R030 | 2 | Pending | [PENDING.R030.shared_services_oidc_ecr.md](./PENDING.R030.shared_services_oidc_ecr.md) |
 | R040 | 3A | Pending | [PENDING.R040.dev_governance_network.md](./PENDING.R040.dev_governance_network.md) |
 | R050 | 3B | Pending | [PENDING.R050.dev_data_secrets.md](./PENDING.R050.dev_data_secrets.md) |
