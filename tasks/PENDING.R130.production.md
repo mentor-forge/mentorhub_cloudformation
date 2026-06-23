@@ -10,7 +10,7 @@ Deploy production account with HA, backups, production IdP, and sign-off checkli
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md)
+- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
 - [mentorhub/DeveloperEdition/standards/sre_standards.md](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/sre_standards.md)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 

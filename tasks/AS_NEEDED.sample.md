@@ -13,8 +13,8 @@ Import an existing MentorHub S3 bucket into a CloudFormation stack so it is mana
 These files must be treated as **inputs** and read before implementation:
 
 - `mentorhub/Specifications/architecture.yaml`
-- `mentorhub/Specifications/aws-platform.yaml`
-- `mentorhub/Specifications/INFO.md` (import pattern reference — CodeArtifact)
+- `docs/specifications/aws-platform.yaml`
+- `docs/specifications/INFO.md` (import pattern reference — CodeArtifact)
 - `mentorhub/Specifications/InfrastructureDiagram.svg`
 
 The agent may also consult:

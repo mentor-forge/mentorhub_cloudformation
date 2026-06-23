@@ -10,8 +10,8 @@ Close InfrastructureDiagram CI/CD arrows: git → GitHub Actions → ECR → ECS
 
 ## Context / Input files
 
-- [mentorhub/Specifications/DEPENDENCY_MOVE.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/DEPENDENCY_MOVE.md) — Phase 5 GHCR removal
-- [mentorhub/Specifications/InfrastructureDiagram.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/InfrastructureDiagram.svg)
+- [mentorhub/Specifications/DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) — Phase 5 GHCR removal
+- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
 - Service repos: `mentorhub_coordinator_api`, `mentorhub_coordinator_spa`, etc.
 
 ```text

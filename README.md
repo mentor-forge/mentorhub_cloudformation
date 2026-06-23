@@ -1,22 +1,16 @@
 # MentorHub CloudFormation
 
-Dedicated infrastructure-as-code repository for MentorHub AWS CloudFormation stacks. Keeps SRE deploy workflows and GitHub Actions isolated from the main [mentorhub](https://github.com/mentor-forge/mentorhub) repo (welcome/login pages and developer-edition CI).
+Dedicated infrastructure-as-code repository for MentorHub AWS CloudFormation stacks. **SRE specifications, platform runbooks, and IaC tasks live here** — isolated from the main [mentorhub](https://github.com/mentor-forge/mentorhub) repo (product specs, Developer Edition, journey apps).
 
-## Specifications (inputs)
+## Documentation
 
-Authoritative intent lives in the [mentorhub Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications) folder:
-
-| Document | Purpose |
+| Location | Purpose |
 |----------|---------|
-| [architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) | Architecture and infrastructure intent (WIP) |
-| [InfrastructureDiagram.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/InfrastructureDiagram.svg) | Platform / account view |
-| [ArchitectureDiagram.dev.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.svg) | Application services inside Dev |
-| [INFO.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/INFO.md) | As-built CodeArtifact commands |
-| [aws-platform.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/aws-platform.yaml) | Region, account IDs, org variables |
-| [DEPENDENCY_MOVE.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/DEPENDENCY_MOVE.md) | OIDC roles, CodeArtifact URLs, CI patterns |
-| [CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md) | Dev runtime tasks |
-| [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) | Tactical task index and timeline |
-| [CLOUDFORMATION_PLAN.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_PLAN.md) | Strategic plan: milestones, governance, decisions |
+| [`docs/README.md`](./docs/README.md) | SRE doc index |
+| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams |
+| [`tasks/README.md`](./tasks/README.md) | SRE task workflow (R010–R130) |
+
+**Product architecture** (journeys, local/dev diagrams, `architecture.yaml`) stays in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).
 
 ## Task workflow
 
@@ -27,34 +21,25 @@ Implementation work is tracked as discrete tasks under [`tasks/`](./tasks/). Sta
 ```text
 mentorhub_cloudformation/
 ├── README.md
+├── docs/
+│   ├── README.md
+│   └── specifications/          # SRE platform specs (moved from mentorhub)
 ├── parameters/
 │   ├── shared-services.json
 │   ├── dev.json
-│   ├── staging.json          # Phase 8
-│   └── production.json       # Phase 9
+│   ├── staging.json
+│   └── production.json
 ├── scripts/
-│   └── deploy-stack.sh
+│   ├── deploy-stack.sh
+│   └── import-codeartifact-stack.sh
+├── import/
+│   └── codeartifact-resources-to-import.json
 ├── templates/
 │   ├── shared-services/
-│   │   ├── codeartifact.yaml
-│   │   ├── github-oidc.yaml
-│   │   ├── ecr.yaml
-│   │   └── cloudtrail.yaml
 │   └── dev/
-│       ├── cloudtrail.yaml
-│       ├── network.yaml
-│       ├── documentdb.yaml
-│       ├── secrets.yaml
-│       ├── ecs-cluster.yaml
-│       ├── api-gateway.yaml
-│       ├── cognito.yaml
-│       ├── s3.yaml
-│       ├── route53-acm.yaml
-│       ├── ses.yaml
-│       └── ecs-services-*.yaml
 ├── tasks/
 │   ├── README.md
-│   └── PENDING.R*.md
+│   └── PENDING|RUNNING|SHIPPED.R*.md
 └── .github/workflows/
     └── cfn-lint.yml
 ```
@@ -76,13 +61,12 @@ aws cloudformation validate-template \
   --template-body file://templates/shared-services/ecr.yaml \
   --region us-east-1 --profile mentorhub-shared
 
-# Deploy a stack (see scripts/deploy-stack.sh)
-./scripts/deploy-stack.sh shared-services ecr mentorhub-shared
+# R020 — CodeArtifact import (see tasks/RUNNING.R020.codeartifact_import.md)
+./scripts/import-codeartifact-stack.sh plan
 ```
 
 ## Rules
 
-- **One stack per PR** — validate each section before starting the next.
-- **Do not recreate CodeArtifact** — import existing resources per [INFO.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/INFO.md).
-- Stack naming: `mentorhub-<env>-<component>`
-- Tags: `Project=MentorHub`, `Environment`, `ManagedBy=CloudFormation`
+- One stack per PR. Validate before deploy.
+- Do **not** delete and recreate CodeArtifact — **import** from [docs/specifications/INFO.md](./docs/specifications/INFO.md).
+- Stack naming: `mentorhub-<env>-<component>`.

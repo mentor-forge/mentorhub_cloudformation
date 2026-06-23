@@ -10,8 +10,8 @@ Bring existing CodeArtifact domain and repositories under CloudFormation managem
 
 ## Context / Input files
 
-- [mentorhub/Specifications/INFO.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/INFO.md) — as-built commands
-- [mentorhub/Specifications/aws-platform.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/aws-platform.yaml)
+- [docs/specifications/INFO.md](../docs/specifications/INFO.md) — as-built commands
+- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ### Existing resources (import targets)

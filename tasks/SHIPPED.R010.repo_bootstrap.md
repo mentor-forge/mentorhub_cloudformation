@@ -11,9 +11,9 @@ Establish the dedicated `mentorhub_cloudformation` repository with layout, deplo
 ## Context / Input files
 
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/aws-platform.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/aws-platform.yaml)
-- [mentorhub/Specifications/CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/InfrastructureDiagram.svg)
+- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
+- [mentorhub/Specifications/CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md)
+- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
 
 ## Requirements
 

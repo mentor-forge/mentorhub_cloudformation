@@ -11,9 +11,9 @@ Align specifications, diagrams, and SRE standards with deployed infrastructure.
 ## Context / Input files
 
 - [mentorhub/Specifications/ArchitectureDiagram.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.md)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/InfrastructureDiagram.svg)
+- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
 - [mentorhub/DeveloperEdition/standards/sre_standards.md](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/sre_standards.md)
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md)
+- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
 
 ## Requirements
 

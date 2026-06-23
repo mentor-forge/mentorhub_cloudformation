@@ -10,7 +10,7 @@ Deploy Fargate ECS cluster, CloudWatch log groups, and task execution role (ECR 
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudEnvironmentPlan.md)
+- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 - Network stack outputs from R040
 

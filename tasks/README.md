@@ -2,7 +2,7 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Checklist:** [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_PLAN.md)
+**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md)
 
 ### Task index
 
@@ -38,7 +38,7 @@ Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
 
 3. **Change control for each task**
    For every task, the agent should:
-   - **Review context**: Read all referenced specification files in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).
+   - **Review context**: Read all referenced specification files in [docs/specifications](../docs/specifications) and [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications) (product).
    - **Plan changes**: Summarize the planned approach in the notes section of the task file.
    - **Implement changes**: Add or update templates under `templates/`, parameters, scripts, workflows, and docs as required.
    - **Template lint (`cfn-lint`)**:
@@ -59,7 +59,7 @@ Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
    - Update the task file's **status** and **implementation notes**.
    - Rename the file prefix from `PENDING.` to `SHIPPED.` when done.
    - If follow-ups are discovered, add them as new tasks instead of over-expanding the current one.
-   - Update [CLOUDFORMATION_CHECKLIST.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CLOUDFORMATION_CHECKLIST.md) if ordering or scope changes.
+   - Update [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) if ordering or scope changes.
 
 ### Task ordering
 

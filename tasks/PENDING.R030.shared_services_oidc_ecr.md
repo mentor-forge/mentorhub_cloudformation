@@ -10,9 +10,9 @@ Codify GitHub OIDC roles, ECR repositories, and Shared-Services CloudTrail/budge
 
 ## Context / Input files
 
-- [mentorhub/Specifications/DEPENDENCY_MOVE.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/DEPENDENCY_MOVE.md) — OIDC roles §0.2.2, §0.2.3
-- [mentorhub/Specifications/aws-platform.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/aws-platform.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/InfrastructureDiagram.svg)
+- [mentorhub/Specifications/DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) — OIDC roles §0.2.2, §0.2.3
+- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
+- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ## Requirements
