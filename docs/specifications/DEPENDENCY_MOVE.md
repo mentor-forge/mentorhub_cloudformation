@@ -1182,11 +1182,11 @@ Also runs automatically before `mh pull`, `mh up`, and during `make update`. Req
 | 6    | Migrate `customer_api` + `customer_spa`                                                                  | **Done**                                                |
 | 7    | Migrate `mentee_api` + `mentee_spa`                                                                      | **Done**                                                |
 | 8    | Migrate `mentor_api` + `mentor_spa` ([§2.4](#24-mentor-journey--final-phase-2-repos); Luke)               | **Done**                                                |
-| 9    | Update docs and onboarding (Phase 3)                                                                       | **Next**                                                |
-| 10   | Remove obsolete git dependency logic (Phase 5)                                                             | After step 9                                            |
+| 9    | Update docs and onboarding (Phase 3)                                                                       | **Done** ([mentorhub PR #18](https://github.com/mentor-forge/mentorhub/pull/18)) |
+| 10   | Remove obsolete git dependency logic (Phase 5)                                                             | **In progress** — `stage0_template_vue_vuetify` (`feature/codeartifact-phase5`) |
 
 
-Do not change all repos in one PR. Utility publish must happen first, then the [coordinator-first rollout table](#rollout-order-coordinator-first). **Phase 2 complete — proceed with Phase 3 (step 9).**
+Do not change all repos in one PR. Utility publish must happen first, then the [coordinator-first rollout table](#rollout-order-coordinator-first). **Phase 3 complete — Phase 5 cleanup in progress (Stage0 SPA template first).**
 
 ---
 
@@ -1195,6 +1195,7 @@ Do not change all repos in one PR. Utility publish must happen first, then the [
 - Remove `git` from API/SPA Dockerfiles where it was only used for dependency installs.
 - Remove GitHub URL rewrite logic and dependency-related `GITHUB_TOKEN`/`GH_PAT` build args.
 - Update READMEs in domain repos.
+- **Stage0 templates:** `stage0_template_vue_vuetify` — CodeArtifact npm (SPA); `stage0_template_umbrella` / API templates — follow after SPA pilot merges.
 - Consider CodeArtifact package retention policy for old package versions.
 - Consider Dependabot/Renovate configured against CodeArtifact for automated bump PRs.
 - Review whether `flatballflyer` legacy IAM access key can be disabled after the new platform workflow is stable.
@@ -1260,6 +1261,17 @@ Do not change all repos in one PR. Utility publish must happen first, then the [
 - `DeveloperEdition/standards/api_standards.md`
 - `DeveloperEdition/standards/branch_protection_standards.md`
 - `DeveloperEdition/standards/examples/docker-push-codeartifact.yml`
+
+### `stage0_template_vue_vuetify` (Phase 5 pilot)
+
+- `package.json` — semver `@{{org.git_org}}/{{info.slug}}_spa_utils`, not `github:…#main`
+- `.npmrc` — CodeArtifact registry scope
+- `Dockerfile` — BuildKit `codeartifact_token` secret; no `git` / `GITHUB_TOKEN` for deps
+- `scripts/docker-build.sh` — local CodeArtifact token for `npm ci`
+- `.github/workflows/docker-push.yml.template` — OIDC + CodeArtifact (match journey SPAs)
+- `.stage0_template/test_expected/*` — synced merge output
+
+Branch: `feature/codeartifact-phase5` (pending push/PR to `agile-learning-institute`).
 
 ---
 
