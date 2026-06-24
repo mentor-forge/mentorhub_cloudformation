@@ -5,11 +5,15 @@
 #   aws sso login --profile mentorhub-shared
 #
 # Usage:
-#   ./scripts/import-codeartifact-stack.sh plan          # create import change set (review only)
+#   ./scripts/import-codeartifact-stack.sh preflight     # read-only: live CodeArtifact vs template (Developer-Packages OK)
+#   ./scripts/import-codeartifact-stack.sh plan          # create import change set (review only; requires SRE + CloudFormation)
 #   ./scripts/import-codeartifact-stack.sh execute       # execute the latest IMPORT change set
 #   ./scripts/import-codeartifact-stack.sh validate      # lint + validate-template only
 #   ./scripts/import-codeartifact-stack.sh smoke         # post-import CLI checks (R020.6)
-#   ./scripts/import-codeartifact-stack.sh apply-tags    # post-import stack update to add resource tags (R020.5)
+#   ./scripts/import-codeartifact-stack.sh apply-tags    # post-import resource tags (R020.5)
+#
+# Profile: default mentorhub-shared. Import plan/execute requires SRE permission set on Shared-Services
+# (Developer-Packages is read-only for CodeArtifact — not CloudFormation). Override: AWS_PROFILE=...
 #
 # Import is non-destructive. Resources are retained on stack deletion (DeletionPolicy: Retain).
 
@@ -30,6 +34,16 @@ aws_cmd() {
   aws --profile "${PROFILE}" --region "${REGION}" "$@"
 }
 
+require_cloudformation() {
+  if ! aws_cmd cloudformation validate-template --template-body "file://${TEMPLATE}" >/dev/null 2>&1; then
+    echo "ERROR: CloudFormation access required (plan/execute/validate)." >&2
+    echo "  Current profile: ${PROFILE}" >&2
+    echo "  Use Shared-Services SSO role SRE (not Developer-Packages)." >&2
+    echo "  Example: AWS_PROFILE=mentorhub-shared-sre ./scripts/import-codeartifact-stack.sh plan" >&2
+    exit 1
+  fi
+}
+
 require_file() {
   if [[ ! -f "$1" ]]; then
     echo "Required file not found: $1" >&2
@@ -37,8 +51,87 @@ require_file() {
   fi
 }
 
+preflight_check() {
+  require_file "${TEMPLATE}"
+  echo "==> Caller identity (${PROFILE})"
+  aws_cmd sts get-caller-identity
+
+  echo ""
+  echo "==> Live CodeArtifact vs template (import targets)"
+  local expected_kms="arn:aws:kms:${REGION}:560167829275:key/1cccc7d9-0b63-45e3-8ca8-655a755bf295"
+  local live_kms
+  live_kms="$(aws_cmd codeartifact describe-domain \
+    --domain mentor-forge \
+    --query 'domain.encryptionKey' \
+    --output text)"
+  if [[ "${live_kms}" == "${expected_kms}" ]]; then
+    echo "  Domain mentor-forge KMS key: OK"
+  else
+    echo "  Domain mentor-forge KMS key: MISMATCH" >&2
+    echo "    expected: ${expected_kms}" >&2
+    echo "    live:     ${live_kms}" >&2
+    exit 1
+  fi
+
+  for spec in "mentorhub-pypi|public:pypi" "mentorhub-npm|public:npmjs"; do
+    local repo="${spec%%|*}"
+    local conn="${spec##*|}"
+    local live_conn
+    live_conn="$(aws_cmd codeartifact describe-repository \
+      --domain mentor-forge \
+      --domain-owner 560167829275 \
+      --repository "${repo}" \
+      --query 'repository.externalConnections[0].externalConnectionName' \
+      --output text)"
+    if [[ "${live_conn}" == "${conn}" ]]; then
+      echo "  Repository ${repo} upstream ${conn}: OK"
+    else
+      echo "  Repository ${repo} upstream: MISMATCH (live=${live_conn})" >&2
+      exit 1
+    fi
+  done
+
+  echo ""
+  echo "==> CloudFormation stack ${STACK_NAME}"
+  if aws_cmd cloudformation describe-stacks --stack-name "${STACK_NAME}" >/dev/null 2>&1; then
+    aws_cmd cloudformation describe-stacks \
+      --stack-name "${STACK_NAME}" \
+      --query 'Stacks[0].{Name:StackName,Status:StackStatus}' \
+      --output table
+    echo "  Stack already exists — skip plan; run smoke or apply-tags if post-import."
+  else
+    local cf_err
+    cf_err="$(aws_cmd cloudformation describe-stacks --stack-name "${STACK_NAME}" 2>&1 || true)"
+    if echo "${cf_err}" | grep -q 'AccessDenied'; then
+      echo "  Cannot describe stack (AccessDenied — Developer-Packages?). Assume SRE role for plan/execute."
+    elif echo "${cf_err}" | grep -q 'does not exist'; then
+      echo "  Stack not found — ready for IMPORT plan (requires SRE + CloudFormation)."
+    else
+      echo "  ${cf_err}" >&2
+    fi
+  fi
+
+  if command -v cfn-lint >/dev/null 2>&1 || [[ -x "${ROOT}/.venv/bin/cfn-lint" ]]; then
+    echo ""
+    lint_and_validate_local_only
+  fi
+  echo ""
+  echo "Preflight complete."
+}
+
+lint_and_validate_local_only() {
+  if command -v cfn-lint >/dev/null 2>&1; then
+    echo "==> cfn-lint ${TEMPLATE}"
+    cfn-lint "${TEMPLATE}"
+  elif [[ -x "${ROOT}/.venv/bin/cfn-lint" ]]; then
+    echo "==> cfn-lint ${TEMPLATE} (via .venv)"
+    "${ROOT}/.venv/bin/cfn-lint" "${TEMPLATE}"
+  fi
+}
+
 lint_and_validate() {
   require_file "${TEMPLATE}"
+  require_cloudformation
   if command -v cfn-lint >/dev/null 2>&1; then
     echo "==> cfn-lint ${TEMPLATE}"
     cfn-lint "${TEMPLATE}"
@@ -54,6 +147,7 @@ lint_and_validate() {
 }
 
 create_import_change_set() {
+  require_cloudformation
   require_file "${TEMPLATE}"
   require_file "${PARAMS}"
   require_file "${IMPORT_RESOURCES}"
@@ -100,6 +194,7 @@ create_import_change_set() {
 }
 
 execute_import_change_set() {
+  require_cloudformation
   local change_set_name="${1:-}"
   if [[ -z "${change_set_name}" ]]; then
     change_set_name="$(aws_cmd cloudformation list-change-sets \
@@ -128,8 +223,8 @@ execute_import_change_set() {
 }
 
 smoke_test() {
-  echo "==> R020.6 list repositories"
-  aws_cmd codeartifact list-repositories \
+  echo "==> R020.6 list repositories in domain"
+  aws_cmd codeartifact list-repositories-in-domain \
     --domain mentor-forge \
     --domain-owner 560167829275
 
@@ -185,6 +280,9 @@ apply_resource_tags() {
 
 cmd="${1:-plan}"
 case "${cmd}" in
+  preflight)
+    preflight_check
+    ;;
   plan)
     lint_and_validate
     create_import_change_set
@@ -203,7 +301,7 @@ case "${cmd}" in
     apply_resource_tags
     ;;
   *)
-    echo "Usage: $0 {plan|execute|validate|smoke|apply-tags}" >&2
+    echo "Usage: $0 {preflight|plan|execute|validate|smoke|apply-tags}" >&2
     exit 1
     ;;
 esac

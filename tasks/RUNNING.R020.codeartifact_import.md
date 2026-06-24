@@ -30,7 +30,7 @@ Bring existing CodeArtifact domain and repositories under CloudFormation managem
 - [ ] **R020.3** Run import change set (`--import-existing-resources`)
 - [ ] **R020.4** Stack update: ensure external connections `public:pypi` and `public:npmjs` match INFO.md
 - [ ] **R020.5** Tag imported resources
-- [ ] **R020.6** Validate: `aws codeartifact list-repositories --domain mentor-forge --domain-owner 560167829275 --region us-east-1 --profile mentorhub-shared`
+- [ ] **R020.6** Validate: `aws codeartifact list-repositories-in-domain --domain mentor-forge --domain-owner 560167829275 --region us-east-1 --profile mentorhub-shared`
 - [ ] **R020.7** Validate: local `mh` → `pipenv run install` / `npm ci` in a consumer repo
 - [ ] **R020.8** Validate: GitHub tag publish still reaches CodeArtifact
 
@@ -63,12 +63,16 @@ CodeArtifact under CloudFormation management with zero consumer breakage.
 
 - Implemented `templates/shared-services/codeartifact.yaml` with `MentorForgeDomain`, `PypiRepository`, and `NpmRepository` resources matching INFO.md (domain KMS key, descriptions, external connections). `DeletionPolicy: Retain` on all resources.
 - Added `import/codeartifact-resources-to-import.json` mapping logical IDs to live resource identifiers.
-- Added `scripts/import-codeartifact-stack.sh` with `plan`, `execute`, `validate`, `smoke`, and `apply-tags` subcommands.
+- Added `scripts/import-codeartifact-stack.sh` with `preflight`, `plan`, `execute`, `validate`, `smoke`, and `apply-tags` subcommands.
 
-**Import procedure (SRE — requires `aws sso login --profile mentorhub-shared`)**
+**Import procedure (SRE — Shared-Services role `SRE`, not `Developer-Packages`)**
 
 ```sh
 cd mentorhub_cloudformation
+aws sso login --profile mentorhub-shared   # must assume SRE for plan/execute
+
+# 0. Read-only preflight (Developer-Packages OK)
+./scripts/import-codeartifact-stack.sh preflight
 
 # 1. Lint + validate + create reviewable IMPORT change set
 ./scripts/import-codeartifact-stack.sh plan
@@ -82,13 +86,13 @@ cd mentorhub_cloudformation
 # 4. Consumer smoke tests (R020.7, R020.8) — manual
 ```
 
-External connections (`public:pypi`, `public:npmjs`) are declared in the import template so R020.4 is satisfied at import time (no separate stack update required unless live state drifts).
-
 **Validation results**
 
-- `cfn-lint templates/shared-services/codeartifact.yaml` — pass (2026-06-22)
-- `aws cloudformation validate-template` — pending (SSO token expired on operator workstation)
-- Import execute + smoke — pending SRE run
+- `cfn-lint templates/shared-services/codeartifact.yaml` — pass (2026-06-24, `.venv`)
+- `./scripts/import-codeartifact-stack.sh preflight` — pass (2026-06-24): live domain KMS, repo upstreams, descriptions match template
+- R020.7 partial — `mh` + `npm ci` in `mentorhub_customer_spa` OK (Developer-Packages)
+- `aws cloudformation validate-template` / `plan` / `execute` — **blocked**: `mentorhub-shared` uses `Developer-Packages` (no CloudFormation). SRE role required on Shared-Services.
+- Import execute + smoke — pending SRE run after PR #2 merge
 
 **Follow-up tasks**
 
