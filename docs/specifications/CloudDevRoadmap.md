@@ -120,7 +120,7 @@ These improve local dev or future relaunches; run in parallel when capacity allo
 | Feature | Task |
 |---------|------|
 | CodeArtifact CF import (if not done) | R020 |
-| Stage0 SPA CodeArtifact | [R108](https://github.com/mentor-forge/mentorhub/blob/main/Tasks/AS_NEEDED.R108.codeartifact_phase5_stage0_spa.md) |
+| Stage0 SPA CodeArtifact | [R108](../../tasks/RUNNING.R108.codeartifact_phase5_stage0_spa.md) |
 | Local dev login IdP | [R102](https://github.com/mentor-forge/mentorhub/blob/main/Tasks/AS_NEEDED.R102.dev_login_pilot.md) |
 | Profile dashboard | [profile_dashboard.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/profile_dashboard.yaml) |
 

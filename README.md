@@ -21,7 +21,7 @@ Full map (current state → live Dev): **[docs/specifications/CloudDevRoadmap.md
 | Location | Purpose |
 |----------|---------|
 | [`docs/README.md`](./docs/README.md) | SRE doc index |
-| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams |
+| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams, roadmap.yaml |
 | [`tasks/README.md`](./tasks/README.md) | SRE task workflow (R010–R130) |
 
 **Product architecture** (journeys, local/dev diagrams, `architecture.yaml`) stays in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).

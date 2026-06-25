@@ -33,6 +33,8 @@ Full map from **current state → live MentorHub-Dev**: [CloudDevRoadmap.md](../
 | R120 | 8 | Pending | [PENDING.R120.staging.md](./PENDING.R120.staging.md) |
 | R130 | 9 | Pending | [PENDING.R130.production.md](./PENDING.R130.production.md) |
 
+**Run as needed (SRE):** [SHIPPED.R107.sre_docs_to_cloudformation.md](./SHIPPED.R107.sre_docs_to_cloudformation.md) · [RUNNING.R108.codeartifact_phase5_stage0_spa.md](./RUNNING.R108.codeartifact_phase5_stage0_spa.md)
+
 Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
 
 ### Task execution workflow
