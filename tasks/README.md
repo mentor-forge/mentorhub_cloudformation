@@ -2,7 +2,7 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
+**Integrated plan:** [LiveDevPlan.md](../docs/specifications/LiveDevPlan.md) · **Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
 
 ### Cloud Dev roadmap (Now / Next / Later)
 

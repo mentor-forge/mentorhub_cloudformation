@@ -3,7 +3,7 @@
 **Status:** Active (draft for review)  
 **North star:** MentorHub running in **AWS MentorHub-Dev** — a URL a developer can open, sign in, and complete at least one journey (coordinator) end-to-end with data in DocumentDB.
 
-This document is the **single map** from where we are today to that goal. It uses an **Agile Design Thinking** rhythm: **Now**, **Next**, and **Later** — not a detailed plan that will go stale.
+This document tracks the **Now / Next / Later** promotion rhythm. For the full integrated plan (critical path, stack order, cross-repo deps, acceptance criteria), see **[LiveDevPlan.md](./LiveDevPlan.md)**.
 
 ---
 

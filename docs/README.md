@@ -6,8 +6,9 @@ Platform infrastructure specifications, migration runbooks, and as-built records
 
 | Document | Purpose |
 |----------|---------|
+| [LiveDevPlan.md](./specifications/LiveDevPlan.md) | **Integrated plan** — critical path, stacks, cross-repo deps, done criteria |
 | [roadmap.yaml](./specifications/roadmap.yaml) | Product + platform roadmap (YAML) |
-| [CloudDevRoadmap.md](./specifications/CloudDevRoadmap.md) | **Now / Next / Later** — current state → live Dev |
+| [CloudDevRoadmap.md](./specifications/CloudDevRoadmap.md) | **Now / Next / Later** — agile promotion rhythm |
 | [CLOUDFORMATION_PLAN.md](./specifications/CLOUDFORMATION_PLAN.md) | Strategic IaC milestones, governance, risks |
 | [CLOUDFORMATION_CHECKLIST.md](./specifications/CLOUDFORMATION_CHECKLIST.md) | Tactical task index R010–R130 |
 | [CloudEnvironmentPlan.md](./specifications/CloudEnvironmentPlan.md) | Platform/runtime scope (Shared-Services, Dev, staging, prod) |

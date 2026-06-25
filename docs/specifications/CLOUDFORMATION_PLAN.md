@@ -4,6 +4,7 @@ Strategic plan for bringing MentorHub AWS infrastructure under CloudFormation. T
 
 | Document | Role | Audience |
 |----------|------|----------|
+| [LiveDevPlan.md](./LiveDevPlan.md) | **Integrated critical path** — stacks, deps, done criteria, cross-repo work | Whole team (start here) |
 | **This plan** | Why, milestones, governance, decisions, mapping to broader platform work | Mike Storey, SRE leads, stakeholders |
 | [CLOUDFORMATION_CHECKLIST.md](./CLOUDFORMATION_CHECKLIST.md) | Tactical index: task order, repo layout, timeline | SRE implementers, agents |
 | [mentorhub_cloudformation/tasks/](https://github.com/mentor-forge/mentorhub_cloudformation/tree/main/tasks) | Executable task files (R010–R130) | SRE implementers, agents |

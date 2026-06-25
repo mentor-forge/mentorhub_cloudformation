@@ -14,7 +14,7 @@ We use a lightweight **Now → Next → Later** rhythm — one feature at a time
 | **Next** | Dev infrastructure (VPC, DocumentDB, ECS, edge) → coordinator pilot → CI/CD → all journeys |
 | **Later** | Test envs in Dev account · staging · production |
 
-Full map (current state → live Dev): **[docs/specifications/CloudDevRoadmap.md](./docs/specifications/CloudDevRoadmap.md)**
+Integrated plan (current state → live Dev): **[docs/specifications/LiveDevPlan.md](./docs/specifications/LiveDevPlan.md)** · Agile rhythm: [CloudDevRoadmap.md](./docs/specifications/CloudDevRoadmap.md)
 
 ## Documentation
 
