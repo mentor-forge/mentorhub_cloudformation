@@ -1,0 +1,25 @@
+[
+  {
+    "ResourceType": "AWS::CodeArtifact::Domain",
+    "LogicalResourceId": "MentorForgeDomain",
+    "ResourceIdentifier": {
+      "DomainName": "mentor-forge"
+    }
+  },
+  {
+    "ResourceType": "AWS::CodeArtifact::Repository",
+    "LogicalResourceId": "PypiRepository",
+    "ResourceIdentifier": {
+      "DomainName": "mentor-forge",
+      "RepositoryName": "mentorhub-pypi"
+    }
+  },
+  {
+    "ResourceType": "AWS::CodeArtifact::Repository",
+    "LogicalResourceId": "NpmRepository",
+    "ResourceIdentifier": {
+      "DomainName": "mentor-forge",
+      "RepositoryName": "mentorhub-npm"
+    }
+  }
+]

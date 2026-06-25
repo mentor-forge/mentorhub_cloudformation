@@ -31,7 +31,7 @@ mentorhub_cloudformation/
 │   └── production.json
 ├── scripts/
 │   ├── deploy-stack.sh
-│   └── import-codeartifact-stack.sh
+│   └── import-codeartifact-stack.sh   # R020 import workflow
 ├── import/
 │   └── codeartifact-resources-to-import.json
 ├── templates/
@@ -61,8 +61,15 @@ aws cloudformation validate-template \
   --template-body file://templates/shared-services/ecr.yaml \
   --region us-east-1 --profile mentorhub-shared
 
+# Deploy a stack (see scripts/deploy-stack.sh)
+./scripts/deploy-stack.sh shared-services ecr mentorhub-shared
+
 # R020 — CodeArtifact import (see tasks/RUNNING.R020.codeartifact_import.md)
-./scripts/import-codeartifact-stack.sh plan
+aws sso login --profile mentorhub-shared   # SRE role required for plan/execute
+./scripts/import-codeartifact-stack.sh preflight   # read-only live vs template check
+./scripts/import-codeartifact-stack.sh plan      # create import change set for review
+./scripts/import-codeartifact-stack.sh execute   # run import + CLI smoke test
+./scripts/import-codeartifact-stack.sh apply-tags
 ```
 
 ## Rules
