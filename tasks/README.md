@@ -2,7 +2,17 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md)
+**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
+
+### Cloud Dev roadmap (Now / Next / Later)
+
+Full map from **current state → live MentorHub-Dev**: [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md) (summary in the [repo README](../README.md#roadmap--cloud-dev-now--next--later)).
+
+| | |
+|---|---|
+| **Now** | [R030 ECR + GHCR](./RUNNING.R030.ecr_ghcr_connection.md) — one feature; execute via task file before promoting Next |
+| **Next** | R031 governance → R040–R070 Dev infra → R080 coordinator pilot → R100/R090 full Dev |
+| **Later** | Test envs · staging · production |
 
 ### Task index
 
@@ -10,7 +20,8 @@ Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_co
 |------|-------|--------|------|
 | R010 | 0 | Shipped | [SHIPPED.R010.repo_bootstrap.md](./SHIPPED.R010.repo_bootstrap.md) |
 | R020 | 1 | Running | [RUNNING.R020.codeartifact_import.md](./RUNNING.R020.codeartifact_import.md) |
-| R030 | 2 | Pending | [PENDING.R030.shared_services_oidc_ecr.md](./PENDING.R030.shared_services_oidc_ecr.md) |
+| R030 | 2 | **Running (Now)** | [RUNNING.R030.ecr_ghcr_connection.md](./RUNNING.R030.ecr_ghcr_connection.md) |
+| R031 | 2b | Pending | [PENDING.R031.shared_services_cloudtrail_budget.md](./PENDING.R031.shared_services_cloudtrail_budget.md) |
 | R040 | 3A | Pending | [PENDING.R040.dev_governance_network.md](./PENDING.R040.dev_governance_network.md) |
 | R050 | 3B | Pending | [PENDING.R050.dev_data_secrets.md](./PENDING.R050.dev_data_secrets.md) |
 | R060 | 3C | Pending | [PENDING.R060.dev_compute_platform.md](./PENDING.R060.dev_compute_platform.md) |
@@ -21,6 +32,8 @@ Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_co
 | R110 | 7 | Pending | [PENDING.R110.documentation_hygiene.md](./PENDING.R110.documentation_hygiene.md) |
 | R120 | 8 | Pending | [PENDING.R120.staging.md](./PENDING.R120.staging.md) |
 | R130 | 9 | Pending | [PENDING.R130.production.md](./PENDING.R130.production.md) |
+
+**Run as needed (SRE):** [SHIPPED.R107.sre_docs_to_cloudformation.md](./SHIPPED.R107.sre_docs_to_cloudformation.md) · [RUNNING.R108.codeartifact_phase5_stage0_spa.md](./RUNNING.R108.codeartifact_phase5_stage0_spa.md)
 
 Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
 

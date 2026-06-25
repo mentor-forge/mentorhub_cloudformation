@@ -22,7 +22,7 @@ git → GitHub Actions → ECR → ECS (MentorHub-Dev)
 
 ## Requirements
 
-- [ ] **R100.1** Update `docker-push.yml` in pilot repos (`mentorhub_coordinator_api`, `mentorhub_coordinator_spa`): push to ECR
+- [ ] **R100.1** Roll dual-push `docker-push.yml` (pattern from R030) to pilot repos (`mentorhub_coordinator_api`, `mentorhub_coordinator_spa`): push to ECR
 - [ ] **R100.2** Add deploy step: update ECS service on merge to `main` (OIDC `GitHubActionsECSDeploy`)
 - [ ] **R100.3** Keep GHCR push in parallel until ECR path proven; then remove GHCR per DEPENDENCY_MOVE Phase 5
 - [ ] **R100.4** Roll CI pattern to customer, mentor, mentee, welcome repos

@@ -1,0 +1,24 @@
+Hills:
+- Who does What and then WOW!
+
+# Product + platform roadmap. Cloud Dev Now/Next/Later: CloudDevRoadmap.md
+
+Roadmap:
+
+  Now:
+  - Cloud Dev platform — ECR + GHCR dual-push (tasks/RUNNING.R030.ecr_ghcr_connection.md)
+  - Finish Cloud DEV architecture diagram (mentorhub Specifications/ArchitectureDiagram.dev.guide.md)
+  - Profile dashboard API + coordinator UI (mentorhub Specifications/profile_dashboard.yaml)
+
+  Next:
+  - MentorHub-Dev runtime: VPC, DocumentDB, ECS, API Gateway, Cognito (CloudEnvironmentPlan.md Phase 1)
+  - CD pipeline: merge to main → ECR → ECS deploy
+  - Staging architecture diagram + account decision
+
+  Later:
+  - Test environments in Dev account
+  - Staging and production environments (CloudEnvironmentPlan Phase 2–3)
+  - GHCR retirement after ECR path proven
+  - Production IdP and Stripe live mode
+
+See also: CloudDevRoadmap.md · CloudEnvironmentPlan.md

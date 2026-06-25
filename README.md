@@ -2,12 +2,26 @@
 
 Dedicated infrastructure-as-code repository for MentorHub AWS CloudFormation stacks. **SRE specifications, platform runbooks, and IaC tasks live here** — isolated from the main [mentorhub](https://github.com/mentor-forge/mentorhub) repo (product specs, Developer Edition, journey apps).
 
+## Roadmap — Cloud Dev (Now / Next / Later)
+
+**Goal:** MentorHub deployed and reachable in **AWS MentorHub-Dev** (sign-in + at least one journey end-to-end).
+
+We use a lightweight **Now → Next → Later** rhythm — one feature at a time, promoted when shipped. **Now** is automated via [tasks/](./tasks/) (R010–R130).
+
+| | Feature |
+|---|---------|
+| **Now** | ECR provisioning + GHCR ↔ ECR dual-push ([R030](./tasks/RUNNING.R030.ecr_ghcr_connection.md)) |
+| **Next** | Dev infrastructure (VPC, DocumentDB, ECS, edge) → coordinator pilot → CI/CD → all journeys |
+| **Later** | Test envs in Dev account · staging · production |
+
+Full map (current state → live Dev): **[docs/specifications/CloudDevRoadmap.md](./docs/specifications/CloudDevRoadmap.md)**
+
 ## Documentation
 
 | Location | Purpose |
 |----------|---------|
 | [`docs/README.md`](./docs/README.md) | SRE doc index |
-| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams |
+| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams, roadmap.yaml |
 | [`tasks/README.md`](./tasks/README.md) | SRE task workflow (R010–R130) |
 
 **Product architecture** (journeys, local/dev diagrams, `architecture.yaml`) stays in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).
