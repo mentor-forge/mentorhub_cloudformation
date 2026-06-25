@@ -43,8 +43,9 @@ Execute in order per [`tasks/README.md`](https://github.com/mentor-forge/mentorh
 | Task | Phase | Focus | Repo file |
 |------|-------|-------|-----------|
 | R010 | 0 | Repo and tooling bootstrap (shipped) | [SHIPPED.R010.repo_bootstrap.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/SHIPPED.R010.repo_bootstrap.md) |
-| R020 | 1 | CodeArtifact import (from INFO.md) | [PENDING.R020.codeartifact_import.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R020.codeartifact_import.md) |
-| R030 | 2 | Shared-Services OIDC, ECR, CloudTrail | [PENDING.R030.shared_services_oidc_ecr.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R030.shared_services_oidc_ecr.md) |
+| R020 | 1 | CodeArtifact import (from INFO.md) | [RUNNING.R020.codeartifact_import.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/RUNNING.R020.codeartifact_import.md) |
+| R030 | 2 | **Now:** ECR provisioning + GHCR dual-push | [RUNNING.R030.ecr_ghcr_connection.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/RUNNING.R030.ecr_ghcr_connection.md) |
+| R031 | 2b | Shared-Services CloudTrail, budget, CodeArtifact OIDC | [PENDING.R031.shared_services_cloudtrail_budget.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R031.shared_services_cloudtrail_budget.md) |
 | R040 | 3A | Dev governance and network | [PENDING.R040.dev_governance_network.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R040.dev_governance_network.md) |
 | R050 | 3B | Dev DocumentDB and secrets | [PENDING.R050.dev_data_secrets.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R050.dev_data_secrets.md) |
 | R060 | 3C | Dev ECS compute platform | [PENDING.R060.dev_compute_platform.md](https://github.com/mentor-forge/mentorhub_cloudformation/blob/main/tasks/PENDING.R060.dev_compute_platform.md) |
@@ -75,9 +76,10 @@ mentorhub_cloudformation/          # dedicated repo (not mentorhub/infrastructur
 ├── templates/
 │   ├── shared-services/
 │   │   ├── codeartifact.yaml     # R020 — IMPORT from INFO.md
-│   │   ├── github-oidc.yaml      # R030
+│   │   ├── github-oidc-ecr.yaml  # R030
 │   │   ├── ecr.yaml              # R030
-│   │   └── cloudtrail.yaml       # R030
+│   │   ├── github-oidc-codeartifact.yaml  # R031
+│   │   └── cloudtrail.yaml       # R031
 │   └── dev/
 │       ├── cloudtrail.yaml
 │       ├── network.yaml
@@ -104,7 +106,7 @@ mentorhub_cloudformation/          # dedicated repo (not mentorhub/infrastructur
 | Tasks | Focused SRE | Deliverable |
 |-------|-------------|-------------|
 | R010–R020 | Week 1 | CodeArtifact imported into CF |
-| R030 | Week 2 | OIDC + ECR + Shared CloudTrail |
+| R030–R031 | Week 2 | ECR + GHCR dual-push; Shared CloudTrail + budget |
 | R040–R080 | Weeks 3–4 | Dev VPC/DB/ECS + coordinator in cloud |
 | R090–R100 | Weeks 5–7 | All journeys + CI deploy to ECS |
 | R110 | Week 8 | Docs/diagrams aligned |
@@ -117,5 +119,5 @@ mentorhub_cloudformation/          # dedicated repo (not mentorhub/infrastructur
 | Date | Change |
 |------|--------|
 | 2026-06-17 | Initial checklist from INFO.md, InfrastructureDiagram, aws-platform.yaml |
-| 2026-06-16 | Dedicated `mentorhub_cloudformation` repo; `architecture.yaml` input; discrete SRE tasks |
+| 2026-06-24 | R030/R031 split; task index and layout updated |
 | 2026-06-19 | Added [CLOUDFORMATION_PLAN.md](./CLOUDFORMATION_PLAN.md) as strategic companion |

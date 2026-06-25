@@ -2,7 +2,7 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md)
+**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md)
 
 ### Task index
 
@@ -10,7 +10,8 @@ Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_co
 |------|-------|--------|------|
 | R010 | 0 | Shipped | [SHIPPED.R010.repo_bootstrap.md](./SHIPPED.R010.repo_bootstrap.md) |
 | R020 | 1 | Running | [RUNNING.R020.codeartifact_import.md](./RUNNING.R020.codeartifact_import.md) |
-| R030 | 2 | Pending | [PENDING.R030.shared_services_oidc_ecr.md](./PENDING.R030.shared_services_oidc_ecr.md) |
+| R030 | 2 | **Running (Now)** | [RUNNING.R030.ecr_ghcr_connection.md](./RUNNING.R030.ecr_ghcr_connection.md) |
+| R031 | 2b | Pending | [PENDING.R031.shared_services_cloudtrail_budget.md](./PENDING.R031.shared_services_cloudtrail_budget.md) |
 | R040 | 3A | Pending | [PENDING.R040.dev_governance_network.md](./PENDING.R040.dev_governance_network.md) |
 | R050 | 3B | Pending | [PENDING.R050.dev_data_secrets.md](./PENDING.R050.dev_data_secrets.md) |
 | R060 | 3C | Pending | [PENDING.R060.dev_compute_platform.md](./PENDING.R060.dev_compute_platform.md) |

@@ -88,7 +88,7 @@ Each milestone maps to checklist tasks. **Do not start the next milestone until 
 
 ```text
 M0 Repo ready     ──► R010 ✓ shipped
-M1 Shared pkg     ──► R020, R030
+M1 Shared pkg     ──► R020, R030, R031
 M2 Dev foundation ──► R040–R070
 M3 Pilot app      ──► R080
 M4 Full Dev       ──► R090, R100
@@ -113,10 +113,11 @@ M7 Production     ──► R130
 |------|----------|
 | CodeArtifact under CF | Import complete; consumers unchanged ([INFO.md](./INFO.md)) |
 | OIDC roles live | Test workflow `sts get-caller-identity` per role |
-| ECR pilot repos | At least one image pushed via OIDC |
-| Shared CloudTrail + budget | Trail logging; ~$25/month budget alarm |
+| ECR pilot repos + GHCR dual-push | Merge to `main` pushes to GHCR and ECR (R030) |
+| Shared CloudTrail + budget | Trail logging; ~$25/month budget alarm (R031) |
+| CodeArtifact OIDC codified | Roles imported or in CF (R031) |
 
-**Tasks:** R020, R030. **Blocks:** All Dev deploys that pull from ECR.
+**Tasks:** R020, R030, R031. **Blocks:** All Dev deploys that pull from ECR.
 
 ### M2 — Dev foundation
 
@@ -188,7 +189,7 @@ Use this table to see how platform plan items trace to IaC work. Detail stays in
 
 | CloudEnvironmentPlan | CloudFormation task(s) | Notes |
 |----------------------|------------------------|-------|
-| Phase 0 (P0-1–P0-9) | R020, R030, DEPENDENCY_MOVE | P0-5–P0-6 largely done manually; R020 **imports** into CF |
+| Phase 0 (P0-1–P0-9) | R020, R030, R031, DEPENDENCY_MOVE | P0-5–P0-6 largely done manually; R020 **imports** into CF |
 | Phase 1 §1.1 Networking (D1-1–D1-6) | R040 | VPN decision may defer |
 | Phase 1 §1.2 Data (D1-7–D1-9) | R050, R080 | Configure job at R080 |
 | Phase 1 §1.3 Compute (D1-10–D1-13) | R030 (ECR), R060, R080–R090 | |
@@ -237,7 +238,7 @@ Same windows as [CLOUDFORMATION_CHECKLIST.md](./CLOUDFORMATION_CHECKLIST.md#sugg
 | Window | Milestone | Outcome |
 |--------|-----------|---------|
 | Week 1 | M1 start | CodeArtifact in CF |
-| Week 2 | M1 complete | OIDC + ECR + Shared trail |
+| Week 2 | M1 complete | ECR + GHCR dual-push; Shared trail (R030, R031) |
 | Weeks 3–4 | M2–M3 | Dev foundation + coordinator in cloud |
 | Weeks 5–7 | M4 | All journeys + CI to ECS |
 | Week 8 | M5 | Docs match reality |
@@ -266,4 +267,4 @@ Same windows as [CLOUDFORMATION_CHECKLIST.md](./CLOUDFORMATION_CHECKLIST.md#sugg
 
 | Date | Change |
 |------|--------|
-| 2026-06-19 | Initial plan; coexists with CLOUDFORMATION_CHECKLIST; R010 shipped |
+| 2026-06-24 | R030 split: ECR + GHCR (Now); R031 CloudTrail/budget (Next); CloudDevRoadmap.md |
