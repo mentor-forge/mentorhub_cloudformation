@@ -2,7 +2,17 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md)
+**Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
+
+### Cloud Dev roadmap (Now / Next / Later)
+
+Full map from **current state → live MentorHub-Dev**: [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md) (summary in the [repo README](../README.md#roadmap--cloud-dev-now--next--later)).
+
+| | |
+|---|---|
+| **Now** | [R030 ECR + GHCR](./RUNNING.R030.ecr_ghcr_connection.md) — one feature; execute via task file before promoting Next |
+| **Next** | R031 governance → R040–R070 Dev infra → R080 coordinator pilot → R100/R090 full Dev |
+| **Later** | Test envs · staging · production |
 
 ### Task index
 

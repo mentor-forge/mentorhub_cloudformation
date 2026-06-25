@@ -8,11 +8,11 @@
 
 Codify Shared-Services governance (CloudTrail, budget alarm) and import or reference existing GitHub OIDC roles for CodeArtifact that were created manually during DEPENDENCY_MOVE Phase 0.
 
-This task is **Next** on the [Cloud Dev Roadmap](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md) after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
+This task is **Next** on the [Cloud Dev Roadmap](../docs/specifications/CloudDevRoadmap.md) after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudDevRoadmap.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md)
+- [docs/specifications/CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
 - [docs/specifications/DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) — OIDC roles §0.2.2, §0.2.3
 - [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
 - [docs/specifications/INFO.md](../docs/specifications/INFO.md)

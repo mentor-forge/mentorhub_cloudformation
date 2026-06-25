@@ -6,11 +6,11 @@
 
 ## Goal
 
-Provision ECR repositories in Shared-Services and connect them to the existing GHCR publish path so merge to `main` pushes the **same image** to both registries. This is the **Now** feature on the [Cloud Dev Roadmap](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md).
+Provision ECR repositories in Shared-Services and connect them to the existing GHCR publish path so merge to `main` pushes the **same image** to both registries. This is the **Now** feature on the [Cloud Dev Roadmap](../docs/specifications/CloudDevRoadmap.md).
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudDevRoadmap.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/CloudDevRoadmap.md) — Now / Next / Later
+- [docs/specifications/CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md) — Now / Next / Later
 - [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
 - [docs/specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
