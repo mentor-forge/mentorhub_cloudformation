@@ -1,0 +1,258 @@
+# DRAFT — MentorHub platform infrastructure intent
+# Status: planning roadmap (review only — not deployed from this file)
+# Details: docs/infrastructure/README.md
+# Executable work: tasks/ (R010–R130)
+# Product architecture: mentorhub/Specifications/architecture.yaml
+
+infrastructure:
+  version: 0.1.0-draft
+  status: planning-roadmap
+  label: Planning branch draft for architectural review
+  primary_region: us-east-1
+  identity_center_region: us-east-2
+
+  principles:
+    - Immutable images — build once on merge; promote by digest, never rebuild for promotion
+    - GHCR is canonical for developer pulls; ECR is the AWS runtime registry (mirror/proxy)
+    - Tasks commit code; features merge and package; releases deploy through change control
+    - Shared data plane where safe (Dev DocumentDB cluster); logical tenant isolation by database and config
+    - Staging mirrors Production topology; may scale to zero between releases
+    - Production is single-tenant with HA and stricter controls
+
+  change_control:
+    task: documented in task automation framework (tasks/*.md)
+    feature: merge to main produces container image(s) in GHCR (+ ECR after F001)
+    release: tagged immutable digest set (semver or environment-prefixed)
+    deploy: automation updates runtime to pinned digest per environment or tenant
+
+  accounts:
+    - id: management
+      purpose: organization, identity center, billing
+      services:
+        - organizations
+        - identity-center
+      doc: docs/infrastructure/accounts.md#management
+
+    - id: shared-services
+      account_id: "560167829275"
+      profile: mentorhub-shared
+      budget_usd_monthly: 100
+      purpose: shared platform services — not application workloads
+      services:
+        - name: codeartifact
+          aws: AWS::CodeArtifact
+          status: operational
+          feature: F002
+          tasks: [R020, R031]
+        - name: container-registry
+          aws: Amazon ECR
+          status: planned
+          role: mirror-of-ghcr-for-aws-pull
+          feature: F001
+          tasks: [R030]
+        - name: github-oidc
+          aws: IAM OIDC provider and roles
+          status: operational-manual
+          tasks: [R031]
+        - name: audit
+          aws: CloudTrail
+          status: partial
+          tasks: [R031]
+        - name: iac
+          aws: CloudFormation
+          repo: mentorhub_cloudformation
+          tasks: [R010]
+      doc: docs/infrastructure/accounts.md#shared-services
+
+    - id: mentorhub-dev
+      account_id: TBD
+      profile: mentorhub-dev
+      budget_usd_monthly: 100
+      purpose: multi-tenant development and short-lived environments
+      decision: D-1
+      tenants:
+        - name: dev
+          database: mentorhub_dev
+          image_tag_alias: dev-latest
+          hostname: dev.mentorhub.example
+        - name: test
+          database: mentorhub_test
+          image_tag_alias: test
+          hostname: test.mentorhub.example
+        - name: training
+          database: mentorhub_training
+          image_tag_alias: training
+          hostname: training.mentorhub.example
+      shared_services:
+        - name: network
+          aws: VPC, NAT Gateway, Security Groups
+          feature: F003
+          tasks: [R040]
+          cidr: 10.0.0.0/16
+        - name: database
+          aws: Amazon DocumentDB
+          feature: F003
+          tasks: [R050]
+          model: one-cluster-multiple-databases
+        - name: compute
+          aws: Amazon ECS on Fargate
+          feature: F003
+          tasks: [R060]
+        - name: edge
+          aws: API Gateway HTTP API, Route 53, ACM
+          feature: F004
+          tasks: [R070]
+          routing: path-based
+        - name: identity
+          aws: Amazon Cognito
+          feature: F004
+          tasks: [R070]
+          interim: welcome-jwt
+          decision: D-2
+        - name: email
+          aws: Amazon SES
+          local_equivalent: mailhog
+        - name: object-storage
+          aws: Amazon S3
+          tasks: [R070]
+        - name: secrets
+          aws: Secrets Manager
+          tasks: [R050]
+        - name: observability
+          aws: CloudWatch Logs, CloudTrail
+          tasks: [R040, R060]
+      application_features: [F005, F006]
+      doc: docs/infrastructure/environments/dev-multi-tenant.md
+
+    - id: mentorhub-staging
+      account_id: TBD
+      budget_usd_monthly: 100
+      purpose: production mirror for release validation; spin down when idle
+      decision: D-4
+      lifecycle:
+        spin_up: deploy-release --env staging --digest
+        spin_down: ecs-desired-count-zero
+      tenants:
+        - name: staging
+          database: mentorhub_staging
+          image_tag_alias: staging
+      topology: mirrors-production
+      feature: F007
+      tasks: [R120]
+      doc: docs/infrastructure/environments/staging.md
+
+    - id: mentorhub-production
+      account_id: TBD
+      budget_usd_monthly: TBD
+      purpose: live single-tenant production
+      tenants:
+        - name: production
+          database: mentorhub_production
+      topology:
+        ha: true
+        waf: true
+        backups: true
+      feature: F008
+      tasks: [R130]
+      doc: docs/infrastructure/environments/production.md
+
+  image_pipeline:
+    build:
+      trigger: merge to main
+      registry_primary: ghcr.io/mentor-forge
+      registry_aws: ecr
+      registry_aws_account: shared-services
+      dependencies: codeartifact
+    promotion:
+      immutable: image-digest
+      rules:
+        - from: ghcr:latest
+          to: ecr:latest
+          when: merge-main
+        - from: ecr:latest
+          to: tenant:dev
+          when: dev-deploy
+        - from: ecr:digest
+          to: env:staging
+          when: change-control-approval
+        - from: ecr:digest
+          to: env:production
+          when: change-control-approval
+    doc: docs/infrastructure/services/registry.md
+
+  local_developer_edition:
+    compose: mentorhub/DeveloperEdition/docker-compose.yaml
+    gaps_to_close:
+      - mailhog
+      - stripe-mock
+      - optional-edge-proxy
+    isolation: docker-compose profiles support partial stacks
+    doc: docs/infrastructure/environments/local.md
+
+  feature_index:
+    - id: F001
+      name: Image pipeline (GHCR ↔ ECR)
+      status: now
+      doc: docs/infrastructure/features/F001-image-pipeline.md
+      tasks: [R030]
+    - id: F002
+      name: CodeArtifact under CloudFormation
+      status: in-progress
+      doc: docs/infrastructure/features/F002-codeartifact-iac.md
+      tasks: [R020, R031]
+    - id: F003
+      name: Dev platform (network, data, compute)
+      status: planned
+      doc: docs/infrastructure/features/F003-dev-platform.md
+      tasks: [R040, R050, R060]
+    - id: F004
+      name: Edge routing and authentication
+      status: planned
+      doc: docs/infrastructure/features/F004-edge-and-auth.md
+      tasks: [R070]
+    - id: F005
+      name: Coordinator pilot in cloud
+      status: planned
+      doc: docs/infrastructure/features/F005-coordinator-pilot.md
+      tasks: [R080]
+    - id: F006
+      name: Full Dev + CI/CD deploy
+      status: planned
+      doc: docs/infrastructure/features/F006-full-dev-deploy.md
+      tasks: [R090, R100, R110]
+    - id: F007
+      name: Staging lifecycle
+      status: later
+      doc: docs/infrastructure/features/F007-staging-lifecycle.md
+      tasks: [R120]
+    - id: F008
+      name: Production
+      status: later
+      doc: docs/infrastructure/features/F008-production.md
+      tasks: [R130]
+
+  open_decisions:
+    - id: D-1
+      question: MentorHub-Dev AWS account ID
+      blocks: [R040]
+    - id: D-2
+      question: Interim auth — welcome JWT vs Cognito-first
+      blocks: [R070, R080]
+    - id: D-3
+      question: Owned domain and TLS vs HTTP-only interim
+      blocks: [R070]
+    - id: D-4
+      question: Staging — separate account vs shared
+      blocks: [R120]
+    - id: D-5
+      question: When to retire GHCR for AWS-only pulls
+      blocks: post-R100
+    - id: D-6
+      question: Developer VPN vs SSO-only access to Dev
+      blocks: [R040]
+    - id: D-7
+      question: SPA delivery — ECS nginx containers vs S3 plus CloudFront
+      blocks: [R070, R090]
+    - id: D-8
+      question: Tenant routing — hostname vs path prefix
+      blocks: [R070]

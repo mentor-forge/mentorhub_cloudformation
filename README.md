@@ -16,11 +16,14 @@ We use a lightweight **Now → Next → Later** rhythm — one feature at a time
 
 Integrated plan (current state → live Dev): **[docs/specifications/LiveDevPlan.md](./docs/specifications/LiveDevPlan.md)** · Agile rhythm: [CloudDevRoadmap.md](./docs/specifications/CloudDevRoadmap.md)
 
+**Planning roadmap (draft):** [docs/infrastructure/README.md](./docs/infrastructure/README.md) — platform intent, AWS mapping, features F001–F008 (`Planning` branch).
+
 ## Documentation
 
 | Location | Purpose |
 |----------|---------|
 | [`docs/README.md`](./docs/README.md) | SRE doc index |
+| [`docs/infrastructure/`](./docs/infrastructure/) | **Planning roadmap** (draft): infrastructure.yaml, features, AWS service mapping |
 | [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams, roadmap.yaml |
 | [`tasks/README.md`](./tasks/README.md) | SRE task workflow (R010–R130) |
 
@@ -37,7 +40,8 @@ mentorhub_cloudformation/
 ├── README.md
 ├── docs/
 │   ├── README.md
-│   └── specifications/          # SRE platform specs (moved from mentorhub)
+│   ├── infrastructure/          # Planning roadmap (draft)
+│   └── specifications/          # SRE platform specs
 ├── parameters/
 │   ├── shared-services.json
 │   ├── dev.json

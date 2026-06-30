@@ -21,4 +21,4 @@ Roadmap:
   - GHCR retirement after ECR path proven
   - Production IdP and Stripe live mode
 
-See also: CloudDevRoadmap.md · CloudEnvironmentPlan.md
+See also: CloudDevRoadmap.md · CloudEnvironmentPlan.md · docs/infrastructure/README.md (planning roadmap)

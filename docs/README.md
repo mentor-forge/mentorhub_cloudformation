@@ -2,10 +2,15 @@
 
 Platform infrastructure specifications, migration runbooks, and as-built records for SRE work. **Executable tasks** live in [`../tasks/`](../tasks/); **templates** in [`../templates/`](../templates/).
 
+## Planning roadmap (draft)
+
+**[infrastructure/](./infrastructure/README.md)** — platform architecture intent, AWS service mapping, feature plans F001–F008, and [infrastructure.yaml](./infrastructure/infrastructure.yaml). Draft on `Planning` branch for review.
+
 ## Specifications (`specifications/`)
 
 | Document | Purpose |
 |----------|---------|
+| [infrastructure/](./infrastructure/README.md) | **Planning roadmap** — accounts, services, features, infrastructure.yaml |
 | [LiveDevPlan.md](./specifications/LiveDevPlan.md) | **Integrated plan** — critical path, stacks, cross-repo deps, done criteria |
 | [roadmap.yaml](./specifications/roadmap.yaml) | Product + platform roadmap (YAML) |
 | [CloudDevRoadmap.md](./specifications/CloudDevRoadmap.md) | **Now / Next / Later** — agile promotion rhythm |
