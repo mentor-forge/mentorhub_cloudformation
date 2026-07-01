@@ -145,12 +145,70 @@ merge main → build → GHCR (+ ECR mirror) → tag/deploy → ECS (dev → tes
 
 ### Observability and governance
 
+Observability is **layered**: AWS-native services for collection and audit, **ELK** for log search and analysis, **Prometheus + Grafana** for metrics and dashboards.
+
+```text
+Application / ECS tasks
+        │
+        ├──► CloudWatch Logs (ECS default log driver)
+        │         │
+        │         └──► Logstash / Fluent Bit ──► Elasticsearch ──► Kibana (ELK)
+        │
+        └──► Prometheus (scrape or ADOT collector) ──► Grafana (dashboards + alerts)
+
+AWS API activity ──► CloudTrail (all accounts)     ← audit, not application logs
+AWS service metrics ──► CloudWatch Metrics          ← optional Grafana datasource
+```
+
+#### AWS platform layer (all accounts)
+
 | Service | Where | Used for | Why |
 |---------|-------|----------|-----|
-| **CloudTrail** | All accounts | API audit log | Who changed what in AWS; required for troubleshooting and compliance. |
-| **CloudWatch Logs** | Workload accounts | Container and gateway logs | ECS tasks emit stdout; operational debugging and alerting hook. |
+| **CloudTrail** | All accounts | API audit log | Who changed infrastructure in AWS; compliance and security investigations. Not a substitute for application logs. |
+| **CloudWatch Logs** | Workload accounts | ECS task stdout/stderr, API Gateway access logs | Native ECS log driver (`awslogs`); required collection point before forwarding to ELK. |
 | **CloudFormation** | All accounts | Infrastructure as code | Reproducible stacks, change sets, import for existing resources (CodeArtifact). |
 | **AWS Budgets** | All accounts | Cost alerts | Early warning before surprise bills. |
+
+#### Log analytics — ELK (target)
+
+| Component | Used for | Why |
+|-----------|----------|-----|
+| **Elasticsearch** | Log storage and full-text search | Query across all journey APIs and tenants; correlate errors across services. |
+| **Logstash** (or **Fluent Bit**) | Log ingestion, parsing, enrichment | Normalise ECS/JSON logs; add `tenant`, `environment`, `journey` fields for multi-tenant dev. |
+| **Kibana** | Log exploration and visualisations | Familiar OSS tooling; interns learn industry-standard log analysis. |
+
+**Placement (target):** Shared-Services account — one ELK stack serves dev, staging, and production. Workload accounts forward logs cross-account or via CloudWatch subscription filters. Keeps observability cost and ops in one place.
+
+**Intern takeaway:** CloudTrail tells you *who deleted a security group*. Kibana tells you *why the coordinator API returned 500 at 2am*.
+
+#### Metrics and dashboards — Prometheus + Grafana (target)
+
+| Component | Used for | Why |
+|-----------|----------|-----|
+| **Prometheus** | Time-series metrics (request rate, latency, errors, ECS task health) | Pull-based metrics model fits containers; PromQL is portable; integrates with alert routing. |
+| **Grafana** | Dashboards, alerting, on-call views | Single pane for journey health, tenant comparison, and infra metrics; can add CloudWatch as a secondary datasource for DocumentDB/ECS AWS metrics. |
+
+**What to scrape:** ECS service metrics (via **AWS Distro for OpenTelemetry** collector or Prometheus exporters), API Gateway metrics, and application `/metrics` endpoints where exposed.
+
+**Placement (target):** Shared-Services alongside ELK, or co-located on the same ECS cluster dedicated to platform tooling.
+
+#### Good decisions
+
+- **Separate concerns:** CloudTrail (audit) ≠ ELK (application logs) ≠ Prometheus (metrics). Mixing them creates noisy dashboards and wrong retention policies.
+- **Centralise observability tooling** in Shared-Services so dev tenants and future staging/prod feed one Kibana and one Grafana — operators do not context-switch per account.
+- **ELK + Grafana/Prometheus** teach portable skills (Kibana, PromQL, Grafana) that transfer to any employer; not locked to a single vendor's console.
+
+#### Findings for observability (Junior Architect)
+
+| # | Finding | Recommendation |
+|---|---------|----------------|
+| F15 | ELK not yet in templates or `architecture.yaml` | Add observability stacks to IaC backlog; decide self-managed ECS vs **Amazon OpenSearch Service** + Kibana (less ops, slightly less "pure ELK"). |
+| F16 | No log pipeline design (CloudWatch → ELK path) | Document in templates: Fluent Bit DaemonSet/sidecar vs CloudWatch Logs subscription → Lambda → Logstash. |
+| F17 | No tenant/env labels on logs and metrics | Require `tenant`, `environment`, `service`, `journey` labels in all ECS task definitions — required for multi-tenant dev in one Kibana/Grafana. |
+| F18 | Prometheus HA and retention not defined | For prod: two Prometheus replicas or Amazon Managed Prometheus; define retention (e.g. 15d metrics, 30d logs). |
+| F19 | Grafana auth not defined | Integrate Grafana with Cognito or Identity Center SSO; do not run Grafana open on the internet. |
+
+**Acceptable but unusual:** Running self-managed ELK on ECS instead of Amazon OpenSearch + Managed Grafana/AMP. Valid for learning and cost control at low volume; revisit when log volume or on-call burden grows.
 
 **Good decision:** Importing existing CodeArtifact into CloudFormation instead of delete-and-recreate. CodeArtifact domains are stateful; recreation would break every consumer pipeline.
 
@@ -238,6 +296,7 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | ECS for everything including SPAs | SPAs are static files | Acceptable for pilot; revisit for cost and caching |
 | API Gateway instead of ALB | ALB is more common for pure microservices | Gateway fits path-based multi-journey routing and future authorizers |
 | DocumentDB instead of MongoDB Atlas | Second vendor can be simpler for small teams | In-VPC, IAM-integrated, one AWS bill — reasonable for this org size |
+| Self-managed ELK + Prometheus on ECS | AWS-native path is OpenSearch + AMP + AMG | Valid for team learning and early volume; plan migration trigger (log GB/day, on-call load) |
 
 ---
 
@@ -252,6 +311,8 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | mentorhub-dev account | Created; **no workload stacks deployed** |
 | VPC, DocumentDB, ECS, API Gateway, Cognito | Templates scaffolded; not deployed |
 | mentorhub-staging / production accounts | Not created |
+| ELK (Elasticsearch, Logstash, Kibana) | Not started — target in Shared-Services |
+| Prometheus + Grafana | Not started — target in Shared-Services |
 
 See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and ARNs.
 
@@ -266,14 +327,16 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 3. Private subnets for workloads; public entry through a managed edge (API Gateway).
 4. Platform services (registry, packages) live in a shared account; apps do not.
 5. Dev cost controls (multi-tenant, shared cluster) are intentional; prod isolation is different on purpose.
+6. Audit (CloudTrail), logs (ELK/Kibana), and metrics (Prometheus/Grafana) are three different systems — do not conflate them.
 
 **For the Junior Architect — before staging/prod templates:**
 
 1. Fix region/AZ naming and copy-paste errors in `architecture.yaml`.
 2. Document cross-account ECR pull and implement in IaC.
 3. Resolve SPA hosting and tenant routing (F11, F12).
-4. Add production hardening checklist: WAF, DocumentDB backups, monitoring alarms, realistic budgets.
+4. Add production hardening checklist: WAF, DocumentDB backups, ELK/Grafana access control, realistic budgets.
 5. Record all account IDs in `config/aws-platform.yaml`.
+6. Design log pipeline (CloudWatch → ELK) and metrics labels for multi-tenant dev (F15–F19).
 
 ---
 

@@ -46,6 +46,8 @@ Account for platform services shared across MentorHub AWS accounts. Does not run
 | Logging | CloudTrail |
 | Package management | CodeArtifact |
 | Container registry | Elastic Container Registry (ECR) |
+| Log analytics | Elasticsearch, Logstash, Kibana (ELK) |
+| Metrics and dashboards | Prometheus, Grafana |
 | Infrastructure automation | CloudFormation |
 | GitHub automation access | IAM OIDC provider and roles |
 
@@ -66,6 +68,8 @@ Multi-tenant account for development, test, training, conference, and other shor
 | Email | SES | `mentorhub-dev-ses` |
 | Object storage | S3 | `mentorhub-dev-s3` |
 | Secrets | Secrets Manager | tenant-scoped |
+| Log collection | CloudWatch Logs | forwards to Shared-Services ELK |
+| Metrics | Prometheus scrape / ADOT | forwards to Shared-Services Grafana |
 
 **Tenants** (logical environments within the account):
 

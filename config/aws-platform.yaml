@@ -92,3 +92,23 @@ sso_profiles:
   default_roles:
     shared_services: Developer-Packages
     dev_workload: Developer
+
+observability:
+  status: not_started
+  placement: shared_services
+  logs:
+    stack: elk
+    components:
+      - elasticsearch
+      - logstash
+      - kibana
+    collection: cloudwatch_logs_forwarding
+  metrics:
+    stack: prometheus_grafana
+    components:
+      - prometheus
+      - grafana
+    collection: adot_or_exporter_scrape
+  audit:
+    service: cloudtrail
+    note: separate from application logs and metrics
