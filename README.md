@@ -22,7 +22,7 @@ AWS Organization
 |---------|-------|
 | Primary workload region | `us-east-1` |
 | IAM Identity Center region | `us-east-2` |
-| Canonical platform config | [`docs/specifications/aws-platform.yaml`](./docs/specifications/aws-platform.yaml) |
+| Canonical platform config | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
 
 ### Deployment status
 
@@ -182,8 +182,11 @@ CD is driven by **tag/deploy** GitHub Actions workflows — not by rebuilding im
 ```text
 mentorhub_cloudformation/
 ├── README.md
+├── config/
+│   └── aws-platform.yaml        # Canonical platform state (accounts, CodeArtifact, SSO)
 ├── docs/
-│   └── specifications/          # Platform config, diagrams, as-built records
+│   ├── InfrastructureDiagram.svg
+│   └── archive/                 # Superseded planning documents
 ├── parameters/
 │   ├── shared-services.json
 │   ├── dev.json
@@ -207,8 +210,9 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 
 | Document | Location |
 |----------|----------|
-| AWS account IDs, SSO, CodeArtifact | [`docs/specifications/aws-platform.yaml`](./docs/specifications/aws-platform.yaml) |
+| AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
+| Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
-| SRE specifications index | [`docs/README.md`](./docs/README.md) |
+| Archived planning docs | [`docs/archive/`](./docs/archive/) |
 
 Rationale for service choices and operational runbooks will be documented separately after this platform overview is agreed.

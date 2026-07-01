@@ -2,17 +2,7 @@ This folder contains SRE / infrastructure tasks that a long-running agent sessio
 
 Adapted from the `tasks/README.md` pattern in MentorHub API repos (`mentorhub_coordinator_api`, etc.), with change control tailored to CloudFormation work instead of Pipenv unit/e2e tests.
 
-**Integrated plan:** [LiveDevPlan.md](../docs/specifications/LiveDevPlan.md) · **Checklist:** [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) · **Plan:** [CLOUDFORMATION_PLAN.md](../docs/specifications/CLOUDFORMATION_PLAN.md) · **Roadmap:** [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
-
-### Cloud Dev roadmap (Now / Next / Later)
-
-Full map from **current state → live MentorHub-Dev**: [CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md) (summary in the [repo README](../README.md#roadmap--cloud-dev-now--next--later)).
-
-| | |
-|---|---|
-| **Now** | [R030 ECR + GHCR](./RUNNING.R030.ecr_ghcr_connection.md) — one feature; execute via task file before promoting Next |
-| **Next** | R031 governance → R040–R070 Dev infra → R080 coordinator pilot → R100/R090 full Dev |
-| **Later** | Test envs · staging · production |
+**Platform overview:** [README.md](../README.md) · **Platform config:** [config/aws-platform.yaml](../config/aws-platform.yaml) · **Product architecture:** [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ### Task index
 
@@ -51,7 +41,7 @@ Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
 
 3. **Change control for each task**
    For every task, the agent should:
-   - **Review context**: Read all referenced specification files in [docs/specifications](../docs/specifications) and [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications) (product).
+   - **Review context**: Read [README.md](../README.md), [config/aws-platform.yaml](../config/aws-platform.yaml), and [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml).
    - **Plan changes**: Summarize the planned approach in the notes section of the task file.
    - **Implement changes**: Add or update templates under `templates/`, parameters, scripts, workflows, and docs as required.
    - **Template lint (`cfn-lint`)**:
@@ -72,7 +62,7 @@ Ad-hoc tasks: [AS_NEEDED.sample.md](./AS_NEEDED.sample.md)
    - Update the task file's **status** and **implementation notes**.
    - Rename the file prefix from `PENDING.` to `SHIPPED.` when done.
    - If follow-ups are discovered, add them as new tasks instead of over-expanding the current one.
-   - Update [CLOUDFORMATION_CHECKLIST.md](../docs/specifications/CLOUDFORMATION_CHECKLIST.md) if ordering or scope changes.
+   - Update [config/aws-platform.yaml](../config/aws-platform.yaml) when platform state changes.
 
 ### Task ordering
 

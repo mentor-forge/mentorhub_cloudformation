@@ -10,9 +10,9 @@ Deploy MentorHub-Dev foundation: account ID recorded, CloudTrail/budget, VPC, su
 
 ## Context / Input files
 
-- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
+- [config/aws-platform.yaml](../config/aws-platform.yaml)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 - `parameters/dev.json` in this repo
 
 ## Requirements

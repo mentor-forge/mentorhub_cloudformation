@@ -6,7 +6,7 @@
 
 ## Goal
 
-Close [DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) **Phase 5** for Stage0 SPA launches: remove git-based `spa_utils` installs from `stage0_template_vue_vuetify`.
+Close Stage0 SPA template migration to CodeArtifact: remove git-based `spa_utils` installs from `stage0_template_vue_vuetify`.
 
 ## Scope (this task)
 
@@ -39,7 +39,7 @@ Close [DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) **Phase 5*
 
 - Remote URLs repaired on all three Stage0 template repos (`stage0_template_vue_vuetify`, `stage0_template_vue_utils`, `stage0_template_umbrella`): removed expired embedded PATs; `origin` is now `git@github.com:agile-learning-institute/…`.
 - `make test` not run here: `ghcr.io/agile-learning-institute/stage0_runbook_merge:latest` pull denied in this environment.
-- `DEPENDENCY_MOVE` step table in [DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) (Phase 3 done, Phase 5 in progress).
+- Package publish status in [config/aws-platform.yaml](../config/aws-platform.yaml).
 - PR [#3](https://github.com/agile-learning-institute/stage0_template_vue_vuetify/pull/3) opened from fork (read-only on upstream; `lutherstill-cpu` has `pull` only).
 
 ## PR (stage0_template_vue_vuetify)

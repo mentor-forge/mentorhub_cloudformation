@@ -10,8 +10,8 @@ Close InfrastructureDiagram CI/CD arrows: git → GitHub Actions → ECR → ECS
 
 ## Context / Input files
 
-- [mentorhub/Specifications/DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) — Phase 5 GHCR removal
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [config/aws-platform.yaml](../config/aws-platform.yaml)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 - Service repos: `mentorhub_coordinator_api`, `mentorhub_coordinator_spa`, etc.
 
 ```text
@@ -24,7 +24,7 @@ git → GitHub Actions → ECR → ECS (MentorHub-Dev)
 
 - [ ] **R100.1** Roll dual-push `docker-push.yml` (pattern from R030) to pilot repos (`mentorhub_coordinator_api`, `mentorhub_coordinator_spa`): push to ECR
 - [ ] **R100.2** Add deploy step: update ECS service on merge to `main` (OIDC `GitHubActionsECSDeploy`)
-- [ ] **R100.3** Keep GHCR push in parallel until ECR path proven; then remove GHCR per DEPENDENCY_MOVE Phase 5
+- [ ] **R100.3** Keep GHCR push in parallel until ECR path proven; then evaluate GHCR retirement
 - [ ] **R100.4** Roll CI pattern to customer, mentor, mentee, welcome repos
 - [ ] **R100.5** Validate: merge trivial change → new image running in ECS within expected time
 - [ ] **R100.6** Document promotion: immutable tag discipline (`latest` dev only; semver or sha for staging+)

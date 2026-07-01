@@ -1,0 +1,94 @@
+# MentorHub AWS platform configuration
+# Canonical source of truth (SRE). Shell defaults: mentorhub/DeveloperEdition/aws-platform.env
+
+aws:
+  primary_region: us-east-1
+  recorded: 2026-06-04
+  updated: 2026-07-01
+
+accounts:
+  shared_services:
+    account_id: "560167829275"
+    profile: mentorhub-shared
+    status: created
+    budget_usd_monthly: 100
+  mentorhub_dev:
+    account_id: TBD
+    profile: mentorhub-dev
+    status: created
+    budget_usd_monthly: 100
+    cloudtrail:
+      trail_name: mentorhub-dev-trail
+      kms_alias: alias/mentorhub-dev-cloudtrail
+  mentorhub_staging:
+    account_id: TBD
+    status: not_created
+    budget_usd_monthly: 100
+  mentorhub_production:
+    account_id: TBD
+    status: not_created
+
+codeartifact:
+  account_id: 560167829275
+  domain: mentor-forge
+  domain_arn: arn:aws:codeartifact:us-east-1:560167829275:domain/mentor-forge
+  domain_owner: 560167829275
+  pypi_repo: mentorhub-pypi
+  pypi_repo_arn: arn:aws:codeartifact:us-east-1:560167829275:repository/mentor-forge/mentorhub-pypi
+  npm_repo: mentorhub-npm
+  npm_repo_arn: arn:aws:codeartifact:us-east-1:560167829275:repository/mentor-forge/mentorhub-npm
+  region: us-east-1
+  status: operational
+  cloudformation_stack: mentorhub-shared-services-codeartifact
+  encryption_key_arn: arn:aws:kms:us-east-1:560167829275:key/1cccc7d9-0b63-45e3-8ca8-655a755bf295
+  external_connections:
+    pypi: public:pypi
+    npm: public:npmjs
+  created: 2026-06-10
+
+packages:
+  pypi:
+    name: api-utils
+    distribution: api_utils
+    source_repo: mentorhub_api_utils
+    status: published
+  npm:
+    name: "@mentor-forge/mentorhub_spa_utils"
+    source_repo: mentorhub_spa_utils
+    status: published
+
+container_registry:
+  ghcr:
+    org: mentor-forge
+    url: ghcr.io/mentor-forge
+    status: operational
+  ecr:
+    account: shared_services
+    status: in_progress
+
+identity_center:
+  sso_region: us-east-2
+  sso_start_url: https://d-906780e571.awsapps.com/start
+  sso_session_name: mentor-forge
+  groups:
+    - Organization-Admin
+    - SRE
+    - Developer
+  permission_sets:
+    - Organization-Admin
+    - SRE
+    - Developer-Packages
+
+github_org_variables:
+  AWS_REGION: us-east-1
+  AWS_SHARED_SERVICES_ACCOUNT_ID: 560167829275
+  CODEARTIFACT_DOMAIN: mentor-forge
+  CODEARTIFACT_PYPI_REPO: mentorhub-pypi
+  CODEARTIFACT_NPM_REPO: mentorhub-npm
+
+sso_profiles:
+  shared_services: mentorhub-shared
+  dev_workload: mentorhub-dev
+  default_roles:
+    shared_services: Developer-Packages
+    dev_workload: Developer

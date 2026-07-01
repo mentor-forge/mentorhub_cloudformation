@@ -6,23 +6,21 @@
 
 ## Goal
 
-Codify Shared-Services governance (CloudTrail, budget alarm) and import or reference existing GitHub OIDC roles for CodeArtifact that were created manually during DEPENDENCY_MOVE Phase 0.
+Codify Shared-Services governance (CloudTrail, budget alarm) and import or reference existing GitHub OIDC roles for CodeArtifact that were created manually during initial platform setup.
 
-This task is **Next** on the [Cloud Dev Roadmap](../docs/specifications/CloudDevRoadmap.md) after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
+Runs after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 
 ## Context / Input files
 
-- [docs/specifications/CloudDevRoadmap.md](../docs/specifications/CloudDevRoadmap.md)
-- [docs/specifications/DEPENDENCY_MOVE.md](../docs/specifications/DEPENDENCY_MOVE.md) — OIDC roles §0.2.2, §0.2.3
-- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
-- [docs/specifications/INFO.md](../docs/specifications/INFO.md)
+- [README.md](../README.md)
+- [config/aws-platform.yaml](../config/aws-platform.yaml)
 
 ## Requirements
 
 ### CodeArtifact OIDC (import if manual)
 
 - [ ] **R031.1** Template `templates/shared-services/github-oidc-codeartifact.yaml` (or consolidate with existing OIDC template)
-- [ ] **R031.2** Role `GitHubActionsCodeArtifactPublish` (import if manual — DEPENDENCY_MOVE §0.2.2)
+- [ ] **R031.2** Role `GitHubActionsCodeArtifactPublish` (import if manual)
 - [ ] **R031.3** Role `GitHubActionsCodeArtifactRead` (import if manual — §0.2.3)
 - [ ] **R031.4** Validate: test workflow `aws sts get-caller-identity` per role
 
@@ -47,7 +45,7 @@ Shared-Services CloudTrail and budget are under CloudFormation; CodeArtifact OID
 
 ## Change control checklist
 
-- [ ] Reviewed DEPENDENCY_MOVE.md OIDC sections.
+- [ ] Reviewed `config/aws-platform.yaml`.
 - [ ] Templates linted and validated.
 - [ ] CloudTrail and budget smoke tests passed.
 - [ ] Scoped commit referencing R031.

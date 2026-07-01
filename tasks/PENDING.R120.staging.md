@@ -10,9 +10,9 @@ Copy Dev templates to a staging account with smaller sizing and immutable image 
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md) — §Phase 2 account model
+- [README.md](../README.md) — platform overview — §Phase 2 account model
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 
 ## Requirements
 
