@@ -210,9 +210,11 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 
 | Document | Location |
 |----------|----------|
+| Architecture rationale and SA review | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
+| Platform overview (accounts, tenancy, CI/CD) | [`README.md`](./README.md) |
 | AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
 | Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
 | Archived planning docs | [`docs/archive/`](./docs/archive/) |
 
-Rationale for service choices and operational runbooks will be documented separately after this platform overview is agreed.
+Rationale for service choices and operational runbooks: see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
