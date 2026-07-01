@@ -1,34 +1,181 @@
 # MentorHub CloudFormation
 
-Dedicated infrastructure-as-code repository for MentorHub AWS CloudFormation stacks. **SRE specifications, platform runbooks, and IaC tasks live here** — isolated from the main [mentorhub](https://github.com/mentor-forge/mentorhub) repo (product specs, Developer Edition, journey apps).
+Infrastructure-as-code for MentorHub on AWS. CloudFormation templates, parameters, and deployment scripts live in this repository.
 
-## Roadmap — Cloud Dev (Now / Next / Later)
+**Product architecture** (journeys, services, data domains) is in [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml). This README describes the **target AWS platform** — accounts, environments, services, and how container images move through the system.
 
-**Goal:** MentorHub deployed and reachable in **AWS MentorHub-Dev** (sign-in + at least one journey end-to-end).
+---
 
-We use a lightweight **Now → Next → Later** rhythm — one feature at a time, promoted when shipped. **Now** is automated via [tasks/](./tasks/) (R010–R130).
+## AWS organization
 
-| | Feature |
-|---|---------|
-| **Now** | ECR provisioning + GHCR ↔ ECR dual-push ([R030](./tasks/RUNNING.R030.ecr_ghcr_connection.md)) |
-| **Next** | Dev infrastructure (VPC, DocumentDB, ECS, edge) → coordinator pilot → CI/CD → all journeys |
-| **Later** | Test envs in Dev account · staging · production |
+```text
+AWS Organization
+└── Root
+    ├── Management              — organization, Identity Center, billing
+    ├── Shared-Services         — shared platform services (no application workloads)
+    ├── mentorhub-dev           — multi-tenant development and short-lived environments
+    ├── mentorhub-staging       — production mirror; may be shut down between releases
+    └── mentorhub-production    — live single-tenant production
+```
 
-Integrated plan (current state → live Dev): **[docs/specifications/LiveDevPlan.md](./docs/specifications/LiveDevPlan.md)** · Agile rhythm: [CloudDevRoadmap.md](./docs/specifications/CloudDevRoadmap.md)
+| Setting | Value |
+|---------|-------|
+| Primary workload region | `us-east-1` |
+| IAM Identity Center region | `us-east-2` |
+| Canonical platform config | [`docs/specifications/aws-platform.yaml`](./docs/specifications/aws-platform.yaml) |
 
-## Documentation
+### Deployment status
 
-| Location | Purpose |
-|----------|---------|
-| [`docs/README.md`](./docs/README.md) | SRE doc index |
-| [`docs/specifications/`](./docs/specifications/) | Platform specs: CLOUDFORMATION_*, DEPENDENCY_MOVE, aws-platform.yaml, INFO.md, diagrams, roadmap.yaml |
-| [`tasks/README.md`](./tasks/README.md) | SRE task workflow (R010–R130) |
+| Account | Status |
+|---------|--------|
+| **Shared-Services** (`560167829275`) | Created. CodeArtifact operational. ECR and remaining shared stacks in progress. |
+| **mentorhub-dev** | Created. Workload infrastructure (VPC, DocumentDB, ECS, edge) not yet deployed. |
+| **mentorhub-staging** | Not created. |
+| **mentorhub-production** | Not created. |
 
-**Product architecture** (journeys, local/dev diagrams, `architecture.yaml`) stays in [mentorhub/Specifications](https://github.com/mentor-forge/mentorhub/tree/main/Specifications).
+---
 
-## Task workflow
+## AWS accounts and services
 
-Implementation work is tracked as discrete tasks under [`tasks/`](./tasks/). Start with [`tasks/README.md`](./tasks/README.md).
+### Shared-Services
+
+Account for platform services shared across MentorHub AWS accounts. Does not run application containers or tenant workloads.
+
+| Service | AWS |
+|---------|-----|
+| Logging | CloudTrail |
+| Package management | CodeArtifact |
+| Container registry | Elastic Container Registry (ECR) |
+| Infrastructure automation | CloudFormation |
+| GitHub automation access | IAM OIDC provider and roles |
+
+CLI profile: `mentorhub-shared`
+
+### mentorhub-dev
+
+Multi-tenant account for development, test, training, conference, and other short-lived environments. Tenants share VPC, DocumentDB cluster, and ECS cluster; each tenant has its own database and configuration.
+
+| Service | AWS | Name / detail |
+|---------|-----|---------------|
+| Logging | CloudTrail | |
+| Network | VPC | `mentorhub-dev-vpc` — `10.0.0.0/16` |
+| Container runtime | ECS | `mentorhub-dev-ecs` |
+| Database | DocumentDB | `mentorhub-dev-documentdb` — one cluster, database per tenant |
+| Identity | Cognito | `mentorhub-dev-cognito` |
+| DNS | Route 53 | `mentorhub-dev-route53` |
+| Email | SES | `mentorhub-dev-ses` |
+| Object storage | S3 | `mentorhub-dev-s3` |
+| Secrets | Secrets Manager | tenant-scoped |
+
+**Tenants** (logical environments within the account):
+
+| Tenant | Image tag | Database |
+|--------|-----------|----------|
+| `dev` | `latest` | `mentorhub-dev` |
+| `test` | `test` | `mentorhub-test` |
+| `training` | `training` | `mentorhub-training` |
+| `conference` | *(promoted from prod or latest)* | `mentorhub-conference` |
+
+Additional short-lived tenants (for example `conference`) follow the same model: shared infrastructure, separate database, removed when no longer needed.
+
+CLI profile: `mentorhub-dev`
+
+### mentorhub-staging
+
+Single-tenant account that mirrors production topology. May be scaled down or shut down between releases.
+
+| Service | AWS |
+|---------|-----|
+| Logging | CloudTrail |
+| Network | VPC (`mentorhub-staging-vpc`) |
+| Container runtime | ECS (`mentorhub-staging-ecs`) |
+| Database | DocumentDB (`mentorhub-staging-documentdb`) |
+| Identity | Cognito |
+| DNS | Route 53 |
+| Email | SES |
+| Object storage | S3 |
+
+| Tenant | Image tag | Database |
+|--------|-----------|----------|
+| `staging` | `staging` | `mentorhub-staging` |
+
+### mentorhub-production
+
+Single-tenant live production environment.
+
+| Service | AWS |
+|---------|-----|
+| Logging | CloudTrail |
+| Network | VPC (`mentorhub-production-vpc`) |
+| Container runtime | ECS (`mentorhub-production-ecs`) |
+| Database | DocumentDB (`mentorhub-production-documentdb`) |
+| Identity | Cognito |
+| DNS | Route 53 |
+| Email | SES |
+| Object storage | S3 |
+
+| Tenant | Image tag | Database |
+|--------|-----------|----------|
+| `production` | `production` | `mentorhub-production` |
+
+---
+
+## Environments and tenancy
+
+| Environment | AWS account | Tenancy | Notes |
+|-------------|-------------|---------|-------|
+| Local | Developer machine (Docker Compose) | Single stack | See [mentorhub Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) |
+| Development / Test / Training / Conference | `mentorhub-dev` | Multi-tenant | Shared DocumentDB cluster; one database per tenant |
+| Staging | `mentorhub-staging` | Single tenant | Mirror of production; spin down when not in use |
+| Production | `mentorhub-production` | Single tenant | Live environment |
+
+---
+
+## Change management
+
+Container images are immutable. CI builds once; deployments promote the same image digest through environments using tags.
+
+```text
+merge to main
+  → build container image
+  → push to GHCR
+  → ECR retrieves image from GHCR (same digest)
+  → deploy by tagging ECR image to target tenant or environment
+```
+
+Promotion path:
+
+```text
+DEV  →  TEST  →  STAGING  →  PRODUCTION
+```
+
+Each stage pins ECS task definitions to an image digest, not a floating tag.
+
+---
+
+## CI/CD
+
+| Stage | Mechanism |
+|-------|-----------|
+| **CI** | GitHub Actions builds on merge to `main` and pushes images to **GHCR** (`ghcr.io/mentor-forge/*`) |
+| **Registry mirror** | **ECR** (Shared-Services) receives the same digest from GHCR |
+| **CD** | Tag/deploy actions promote an ECR image digest to a tenant or environment; ECS services update to the pinned digest |
+
+Build dependencies (Python and npm packages) are resolved from **CodeArtifact** in Shared-Services during CI.
+
+### Deploy automation (examples)
+
+| Action | Description |
+|--------|-------------|
+| Deploy `:latest` to `dev` tenant | Pull current `:latest` images from GHCR into ECR; deploy to the `dev` tenant in `mentorhub-dev` |
+| Promote digest to `test` tenant | Tag ECR image; update ECS services for the `test` tenant |
+| Deploy production release to `conference` tenant | Copy current production image digests into ECR; stand up a `conference` tenant in `mentorhub-dev`; tear down after the event |
+| Deploy to staging | Promote approved digest to `mentorhub-staging` |
+| Deploy to production | Promote approved digest to `mentorhub-production` |
+
+CD is driven by **tag/deploy** GitHub Actions workflows — not by rebuilding images at deploy time.
+
+---
 
 ## Repository layout
 
@@ -36,8 +183,7 @@ Implementation work is tracked as discrete tasks under [`tasks/`](./tasks/). Sta
 mentorhub_cloudformation/
 ├── README.md
 ├── docs/
-│   ├── README.md
-│   └── specifications/          # SRE platform specs (moved from mentorhub)
+│   └── specifications/          # Platform config, diagrams, as-built records
 ├── parameters/
 │   ├── shared-services.json
 │   ├── dev.json
@@ -45,49 +191,24 @@ mentorhub_cloudformation/
 │   └── production.json
 ├── scripts/
 │   ├── deploy-stack.sh
-│   └── import-codeartifact-stack.sh   # R020 import workflow
-├── import/
-│   └── codeartifact-resources-to-import.json
+│   └── import-codeartifact-stack.sh
 ├── templates/
 │   ├── shared-services/
 │   └── dev/
-├── tasks/
-│   ├── README.md
-│   └── PENDING|RUNNING|SHIPPED.R*.md
 └── .github/workflows/
     └── cfn-lint.yml
 ```
 
-## Prerequisites
+Stack naming convention: `mentorhub-<env>-<component>`.
 
-- AWS CLI v2 with SSO configured (`mentorhub-shared`, `mentorhub-dev`)
-- [`cfn-lint`](https://github.com/aws-cloudformation/cfn-lint)
-- Region: `us-east-1` (workloads). SSO Identity Center: `us-east-2`.
+---
 
-## Quick commands
+## Related documentation
 
-```sh
-# Lint all templates
-cfn-lint templates/**/*.yaml
+| Document | Location |
+|----------|----------|
+| AWS account IDs, SSO, CodeArtifact | [`docs/specifications/aws-platform.yaml`](./docs/specifications/aws-platform.yaml) |
+| Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
+| SRE specifications index | [`docs/README.md`](./docs/README.md) |
 
-# Validate a template (no deploy)
-aws cloudformation validate-template \
-  --template-body file://templates/shared-services/ecr.yaml \
-  --region us-east-1 --profile mentorhub-shared
-
-# Deploy a stack (see scripts/deploy-stack.sh)
-./scripts/deploy-stack.sh shared-services ecr mentorhub-shared
-
-# R020 — CodeArtifact import (see tasks/RUNNING.R020.codeartifact_import.md)
-aws sso login --profile mentorhub-shared   # SRE role required for plan/execute
-./scripts/import-codeartifact-stack.sh preflight   # read-only live vs template check
-./scripts/import-codeartifact-stack.sh plan      # create import change set for review
-./scripts/import-codeartifact-stack.sh execute   # run import + CLI smoke test
-./scripts/import-codeartifact-stack.sh apply-tags
-```
-
-## Rules
-
-- One stack per PR. Validate before deploy.
-- Do **not** delete and recreate CodeArtifact — **import** from [docs/specifications/INFO.md](./docs/specifications/INFO.md).
-- Stack naming: `mentorhub-<env>-<component>`.
+Rationale for service choices and operational runbooks will be documented separately after this platform overview is agreed.
