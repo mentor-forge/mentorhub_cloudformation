@@ -1,0 +1,5 @@
+Description: PLACEHOLDER — Internet-facing Application Load Balancer, listener rules, and target groups for journey SPAs/APIs. Implement in R070.
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

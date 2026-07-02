@@ -44,7 +44,7 @@ Provision ECR repositories in Shared-Services and connect them to the existing G
 | Import/codify CodeArtifact OIDC roles | R031 |
 | `GitHubActionsECSDeploy` role | R100 |
 | ECS deploy on merge | R100 |
-| GHCR removal | Later — after ECR path proven |
+| GHCR removal + Developer Edition ECR pull | [PENDING.R100.cicd_ecs_deploy.md](./PENDING.R100.cicd_ecs_deploy.md) (R100.3, R100.7) |
 
 ## Validation expectations
 

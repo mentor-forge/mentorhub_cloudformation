@@ -20,7 +20,7 @@ Deploy coordinator API, SPA, and optional welcome service to ECS — first end-t
 - [ ] **R080.2** Task definition: `coordinator_api` (image from ECR or interim GHCR)
 - [ ] **R080.3** Task definition: `coordinator_spa` (env: `API_HOST`, `IDP_LOGIN_URI`, JWT settings)
 - [ ] **R080.4** Task definition: `welcome` (optional for interim dev login)
-- [ ] **R080.5** ECS services in private subnets; target groups / API Gateway integration
+- [ ] **R080.5** ECS services in private subnets; register with **ALB** target groups (R070)
 - [ ] **R080.6** Env vars from Secrets Manager — not baked into images
 - [ ] **R080.7** Run `mongodb_api` configure job once against DocumentDB (ops runbook)
 - [ ] **R080.8** Smoke test: login → coordinator SPA → API round-trip → data in DocumentDB

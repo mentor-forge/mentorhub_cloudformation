@@ -14,7 +14,8 @@ MentorHub application **source code** is open on GitHub under the project licens
 |------------------------|---------------------------------------------|
 | Application and library source repos | Pre-built **public container images** (no public GHCR) |
 | Runtime contract (APIs, env vars, JWT/OIDC expectations) | **CodeArtifact** access without invitation |
-| [Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) (local Docker Compose) | Mentor Forge production operations or SLAs |
+| **Demo tenant (target)** in `mentorhub-dev` — minimal product trial via hosted URL | Anonymous local container builds (require CodeArtifact + contributor auth) |
+| [Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) (invited contributors: ECR pull + CodeArtifact via `mh` / SSO) | `GITHUB_TOKEN` / GHCR for local dev (interim until R100) |
 | This CloudFormation repo as an AWS reference design | Turnkey multi-cloud IaC |
 
 **Mentor Forge operators** build on merge to `main`, resolve dependencies from **CodeArtifact**, push images to **ECR** (Shared-Services), and deploy to **ECS** using the workflows and roles documented in [docs/github-ci.md](./docs/github-ci.md). Contributors who need the same pipeline are **invited** to the organization and AWS access model — we do not subsidize unbounded use of shared build infrastructure.

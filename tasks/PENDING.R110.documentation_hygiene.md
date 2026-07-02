@@ -18,7 +18,7 @@ Align specifications, diagrams, and SRE standards with deployed infrastructure.
 ## Requirements
 
 - [ ] **R110.1** Update ArchitectureDiagram.md — link Infrastructure + CF checklist + mentorhub_cloudformation repo
-- [ ] **R110.2** Update InfrastructureDiagram.svg — add missing internal arrows (VPC ↔ ECS ↔ API Gateway ↔ DocumentDB)
+- [ ] **R110.2** Update InfrastructureDiagram.svg and ArchitectureDiagram.dev.* — ALB (not API Gateway), VPC ↔ ECS ↔ ALB ↔ DocumentDB
 - [ ] **R110.3** Note GHCR interim vs ECR target on diagram
 - [ ] **R110.4** Revise sre_standards.md to as-implemented (replace "IaC TBD")
 - [ ] **R110.5** Update CloudEnvironmentPlan.md checkboxes to match deployed stacks
