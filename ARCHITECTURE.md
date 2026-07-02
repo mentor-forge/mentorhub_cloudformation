@@ -26,10 +26,7 @@ Developers (local Docker Compose)
 GitHub (source) ──► GitHub Actions (CI)
         │                    │
         │                    ├──► CodeArtifact (pip/npm libs)
-        │                    └──► GHCR (container images)
-        │                              │
-        │                              ▼
-        │                         ECR mirror (Shared-Services)
+        │                    └──► ECR (container images, Shared-Services)
         │                              │
         ▼                              ▼
 IAM Identity Center              ECS (per account/tenant)
@@ -43,6 +40,30 @@ IAM Identity Center              ECS (per account/tenant)
 ```
 
 **Product workloads:** eight journey repositories (four API + four SPA pairs), plus shared `api_utils` / `spa_utils` libraries, `mongodb_api` configurator, and `runbook_api`.
+
+---
+
+## Open source and third-party implementation
+
+MentorHub is **open source in code**, not in **Mentor Forge’s operational pipeline**. GitHub is the source of truth for application repositories. We do **not** target public pre-built images (no public GHCR); images are built in CI and stored in **private ECR** for Mentor Forge deployments.
+
+### Layers
+
+| Layer | Open? | Notes |
+|-------|-------|-------|
+| **Application source** | Yes | Fork and modify under the project license. |
+| **Shared libraries** | Yes (source) | `api-utils` / `spa_utils` published to **Mentor Forge CodeArtifact** for our CI — not a public package service for the world. |
+| **Container images** | No (public registry) | Target: CI → **ECR** only. Third parties build and host their own images. |
+| **This AWS platform** | Yes (reference) | CloudFormation, diagrams, and tasks document **how we run it**; adopters may copy ideas or ignore them. |
+| **Mentor Forge CI secrets / OIDC** | Invited contributors | Org secrets and CodeArtifact access require invitation — operational mote, not a license restriction. |
+
+### Third-party implementer path
+
+External operators should assume **no supported shortcut**: fork repos, own dependency indexes, own registry, own IaC. Minimum product trial without our cloud: [Developer Edition Compose](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) from source.
+
+**Good decision:** Separating **OSS code** from **supported implementation** keeps apprentice scope bounded, avoids paying for unbounded CodeArtifact/CI use, and still allows serious adopters to self-host with engineering investment.
+
+**Intern takeaway:** “Open source” here means you can read and fork the code — not that Mentor Forge will build, host, and ship containers for every deployment on the internet.
 
 ---
 
@@ -83,21 +104,20 @@ IAM Identity Center              ECS (per account/tenant)
 
 | Service | Where | Used for | Why |
 |---------|-------|----------|-----|
-| **CodeArtifact** | Shared-Services | Private PyPI and npm (`api-utils`, `spa_utils`) | Shared libraries are versioned packages, not git clones at Docker build time. Reproducible CI, faster builds, audit trail. |
-| **GHCR** | GitHub | Primary container registry today | Natural home for GitHub Actions output; developers already pull from `ghcr.io/mentor-forge`. |
-| **ECR** | Shared-Services | AWS-side image store for ECS | ECS tasks pull from ECR in-region. Mirrors GHCR digest so deploy does not rebuild. |
-| **GitHub Actions** | GitHub | CI build and push | Build once on merge to `main`. |
+| **CodeArtifact** | Shared-Services | Private PyPI and npm (`api-utils`, `spa_utils`) | Shared libraries are versioned packages, not git clones at Docker build time. Reproducible CI, faster builds, audit trail. Access is Mentor Forge–scoped (invited contributors). |
+| **ECR** | Shared-Services | Authoritative container registry for ECS | CI pushes images on merge to `main`. ECS tasks pull in-region. No public GHCR — third parties use their own registry. |
+| **GitHub Actions** | GitHub | CI build and push | Build once on merge to `main`; OIDC to CodeArtifact and ECR. Org variables and role secrets in [docs/github-ci.md](./docs/github-ci.md). |
 | **Tag/deploy workflows** | GitHub + AWS | CD promotion and rollout | **Promote** moves tags in ECR; **deploy** rolls ECS using tenant tag config. |
 
 **Promotion path:**
 
 ```text
-merge main → build → GHCR (:latest) + ECR mirror → promote (tag → tag) → deploy (tenant/env ECS rollout)
+merge main → build → ECR (:latest) → promote (tag → tag) → deploy (tenant/env ECS rollout)
 ```
 
 **Good decision:** Immutable images. CI builds once; promotion moves the **same image** through environments — we do not rebuild at deploy time.
 
-**Unusual (interim):** Dual registry (GHCR **and** ECR). Common during migration from GitHub-centric CI to AWS-centric runtime. Plan to retire GHCR for AWS-only paths once ECR + ECS deploy is proven ([README.md](./README.md) CD section).
+**Good decision:** ECR as the single registry for Mentor Forge runtime (not public GHCR). Keeps images and pull policy inside AWS; aligns with the open-source boundary that external operators fork and publish their own images.
 
 ---
 
@@ -110,8 +130,17 @@ merge main → build → GHCR (:latest) + ECR mirror → promote (tag → tag) �
 | **API Gateway (HTTP API)** | Workload accounts | Single HTTPS entry point | Routes `/coordinator`, `/mentor`, `/mentee`, `/customer` to backend services. Hides internal ECS topology. |
 | **Route 53** | Workload accounts | DNS hostnames | Maps friendly names to API Gateway / CloudFront. |
 | **ACM** | Workload accounts | TLS certificates | Free managed certs for HTTPS. |
+| **AWS WAF** | Workload accounts (prod target) | Web application firewall | Blocks common attacks and abuse at the public edge — planned for production. |
 
 **Good decision:** API Gateway in front of private ECS tasks. Internet-facing containers are harder to secure and patch; gateway gives TLS termination, throttling, and a single place for auth integration.
+
+#### ACM, WAF, and ALB — what they are and how we use them
+
+**ACM (AWS Certificate Manager)** — AWS issues and auto-renews **TLS certificates** (the “padlock” for HTTPS). You prove domain ownership (usually via DNS in Route 53), and ACM handles renewal before expiry. **How we use it:** Attach an ACM certificate to **API Gateway** (and to **CloudFront** if SPAs move to S3 + CloudFront) so users reach `https://api.<domain>` with a valid cert. ACM does not run application code — it only supplies the certificate the edge service terminates TLS with.
+
+**WAF (AWS Web Application Firewall)** — A **layer-7 firewall** that inspects HTTP requests before they reach your app. Managed rule groups block SQL injection, cross-site scripting, known bad bots, and oversized payloads; you can add rate limits and geo rules. **How we use it:** Associate a WAF **web ACL** with the production edge (**API Gateway** or **CloudFront**). Dev and test can omit WAF to save cost and complexity; production should enable it before go-live (finding F8). WAF complements Cognito and API auth — it filters malicious traffic, not “is this user logged in?”
+
+**ALB (Application Load Balancer)** — A **VPC load balancer** that distributes HTTP/HTTPS traffic across targets (typically ECS tasks in target groups). It health-checks backends and supports path- or host-based routing inside the VPC. **How we use it:** **Not as the primary public edge today** — we use **API Gateway** for path-based multi-journey routing (`/coordinator`, `/mentor`, etc.), throttling, and future authorizers. ALB is the more common choice when many microservices share one hostname and you route by path inside the VPC. We might add an **internal ALB** later if service-to-service HTTP routing grows; replacing API Gateway with a public ALB is possible but not the current design.
 
 **Open design choice (not yet resolved):** SPA static assets — serve from **ECS (nginx)** containers vs **S3 + CloudFront**. ECS works for parity with local dev; S3 + CloudFront is usually cheaper and more scalable for static files. Decide before R070/R090 implementation.
 
@@ -145,14 +174,15 @@ merge main → build → GHCR (:latest) + ECR mirror → promote (tag → tag) �
 
 ### Observability and governance
 
-Observability is **layered**: AWS-native services for collection and audit, **ELK** for log search and analysis, **Prometheus + Grafana** for metrics and dashboards.
+Observability is **layered**: AWS-native services for collection and audit, **Amazon OpenSearch Service** for log search and analysis, **Prometheus + Grafana** for metrics and dashboards.
 
 ```text
 Application / ECS tasks
         │
         ├──► CloudWatch Logs (ECS default log driver)
         │         │
-        │         └──► Logstash / Fluent Bit ──► Elasticsearch ──► Kibana (ELK)
+        │         └──► Fluent Bit / subscription filter ──► OpenSearch (managed)
+        │                                                      └──► OpenSearch Dashboards
         │
         └──► Prometheus (scrape or ADOT collector) ──► Grafana (dashboards + alerts)
 
@@ -165,21 +195,25 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
 | Service | Where | Used for | Why |
 |---------|-------|----------|-----|
 | **CloudTrail** | All accounts | API audit log | Who changed infrastructure in AWS; compliance and security investigations. Not a substitute for application logs. |
-| **CloudWatch Logs** | Workload accounts | ECS task stdout/stderr, API Gateway access logs | Native ECS log driver (`awslogs`); required collection point before forwarding to ELK. |
+| **CloudWatch Logs** | Workload accounts | ECS task stdout/stderr, API Gateway access logs | Native ECS log driver (`awslogs`); required collection point before forwarding to OpenSearch. |
 | **CloudFormation** | All accounts | Infrastructure as code | Reproducible stacks, change sets, import for existing resources (CodeArtifact). |
 | **AWS Budgets** | All accounts | Cost alerts | Early warning before surprise bills. |
 
-#### Log analytics — ELK (target)
+#### Log analytics — Amazon OpenSearch Service (decided)
+
+**Decision:** Use **Amazon OpenSearch Service** (managed) instead of a self-managed ELK stack on ECS. OpenSearch is the AWS-managed evolution of the Elasticsearch API; **OpenSearch Dashboards** replaces Kibana for log exploration.
 
 | Component | Used for | Why |
 |-----------|----------|-----|
-| **Elasticsearch** | Log storage and full-text search | Query across all journey APIs and tenants; correlate errors across services. |
-| **Logstash** (or **Fluent Bit**) | Log ingestion, parsing, enrichment | Normalise ECS/JSON logs; add `tenant`, `environment`, `journey` fields for multi-tenant dev. |
-| **Kibana** | Log exploration and visualisations | Familiar OSS tooling; interns learn industry-standard log analysis. |
+| **Amazon OpenSearch Service** | Log storage and full-text search | Managed cluster (patching, scaling, snapshots); Elasticsearch-compatible query DSL; no Logstash/Elasticsearch ops on ECS. |
+| **OpenSearch Dashboards** | Log exploration and visualisations | Built-in UI for OpenSearch; same role Kibana played in ELK — search, filters, dashboards. |
+| **Fluent Bit** (or **OpenSearch Ingestion**) | Log shipping and enrichment | Forward from CloudWatch Logs or ECS; add `tenant`, `environment`, `service`, `journey` fields for multi-tenant dev. |
 
-**Placement (target):** Shared-Services account — one ELK stack serves dev, staging, and production. Workload accounts forward logs cross-account or via CloudWatch subscription filters. Keeps observability cost and ops in one place.
+**Why not self-managed ELK:** A small SRE team should not operate Elasticsearch, Logstash, and Kibana on ECS alongside application workloads. Managed OpenSearch reduces on-call burden, integrates with VPC and IAM, and stays on one AWS bill. The team still learns portable log-query concepts (index patterns, field filters, aggregations) without running the data plane.
 
-**Intern takeaway:** CloudTrail tells you *who deleted a security group*. Kibana tells you *why the coordinator API returned 500 at 2am*.
+**Placement:** Shared-Services account — one OpenSearch domain serves dev, staging, and production log indices (separate index prefixes or ISM policies per environment/tenant). Workload accounts forward via CloudWatch Logs subscription filters or Fluent Bit.
+
+**Intern takeaway:** CloudTrail tells you *who deleted a security group*. OpenSearch Dashboards tells you *why the coordinator API returned 500 at 2am*.
 
 #### Metrics and dashboards — Prometheus + Grafana (target)
 
@@ -188,27 +222,43 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
 | **Prometheus** | Time-series metrics (request rate, latency, errors, ECS task health) | Pull-based metrics model fits containers; PromQL is portable; integrates with alert routing. |
 | **Grafana** | Dashboards, alerting, on-call views | Single pane for journey health, tenant comparison, and infra metrics; can add CloudWatch as a secondary datasource for DocumentDB/ECS AWS metrics. |
 
-**What to scrape:** ECS service metrics (via **AWS Distro for OpenTelemetry** collector or Prometheus exporters), API Gateway metrics, and application `/metrics` endpoints where exposed.
+#### Application metrics — `/metrics` on every API (implemented)
 
-**Placement (target):** Shared-Services alongside ELK, or co-located on the same ECS cluster dedicated to platform tooling.
+All journey domain APIs follow [API Standards](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/api_standards.md): each Flask service calls **`api_utils.create_metric_routes(app)`** (`prometheus-flask-exporter` middleware) in `server.py`. That exposes **`GET /metrics`** in Prometheus text exposition format — no blueprint registration, no JWT (scrapers must reach the container, not the authenticated `/api/*` surface).
+
+| What | Detail |
+|------|--------|
+| **Standard** | Required on every API alongside `/api/config` and `/docs/*` — see [api_utils `create_metric_routes()`](https://github.com/mentor-forge/mentorhub_api_utils/blob/main/api_utils/routes/metric_routes.py) |
+| **Metrics emitted** | HTTP request counts, durations (histogram), status codes, active requests — labelled by method, path, and status |
+| **Domain APIs today** | coordinator, customer, mentee, mentor (and `api_utils` demo server) |
+| **Local check** | `curl http://localhost:<api-port>/metrics` (port per service; demo server uses `9092`) |
+
+**What Prometheus scrapes (target):**
+
+1. **Application** — each ECS task’s API container at `http://<task-ip>:<api-port>/metrics` (private subnet; not via API Gateway).
+2. **Platform** — API Gateway, ECS, DocumentDB via CloudWatch (optional Grafana datasource) or ADOT exporters where needed.
+
+Prometheus in Shared-Services (or a cluster-local scraper forwarding to it) discovers ECS tasks and pulls `/metrics` on a short interval. Grafana dashboards aggregate per-service and per-tenant views once scrape targets carry `tenant`, `environment`, `service`, and `journey` labels (F17).
+
+**Placement:** Shared-Services alongside OpenSearch, or co-located on the same ECS cluster dedicated to platform tooling.
 
 #### Good decisions
 
-- **Separate concerns:** CloudTrail (audit) ≠ ELK (application logs) ≠ Prometheus (metrics). Mixing them creates noisy dashboards and wrong retention policies.
-- **Centralise observability tooling** in Shared-Services so dev tenants and future staging/prod feed one Kibana and one Grafana — operators do not context-switch per account.
-- **ELK + Grafana/Prometheus** teach portable skills (Kibana, PromQL, Grafana) that transfer to any employer; not locked to a single vendor's console.
+- **Separate concerns:** CloudTrail (audit) ≠ OpenSearch (application logs) ≠ Prometheus (metrics). Mixing them creates noisy dashboards and wrong retention policies.
+- **Centralise observability tooling** in Shared-Services so dev tenants and future staging/prod feed one OpenSearch domain and one Grafana — operators do not context-switch per account.
+- **Standard `/metrics` on every API:** Application metrics are already implemented via `api_utils`; platform work is wiring Prometheus scrape targets and Grafana dashboards, not adding per-service exporters.
+- **Managed OpenSearch + self-managed Prometheus/Grafana (initially):** Logs benefit most from a managed service at our scale; metrics tooling may later move to Amazon Managed Prometheus / Amazon Managed Grafana if ops burden grows.
+- **OpenSearch over self-managed ELK:** Same search UX family without operating Elasticsearch and Logstash on ECS.
 
 #### Findings for observability (Junior Architect)
 
 | # | Finding | Recommendation |
 |---|---------|----------------|
-| F15 | ELK not yet in templates or `architecture.yaml` | Add observability stacks to IaC backlog; decide self-managed ECS vs **Amazon OpenSearch Service** + Kibana (less ops, slightly less "pure ELK"). |
-| F16 | No log pipeline design (CloudWatch → ELK path) | Document in templates: Fluent Bit DaemonSet/sidecar vs CloudWatch Logs subscription → Lambda → Logstash. |
-| F17 | No tenant/env labels on logs and metrics | Require `tenant`, `environment`, `service`, `journey` labels in all ECS task definitions — required for multi-tenant dev in one Kibana/Grafana. |
-| F18 | Prometheus HA and retention not defined | For prod: two Prometheus replicas or Amazon Managed Prometheus; define retention (e.g. 15d metrics, 30d logs). |
-| F19 | Grafana auth not defined | Integrate Grafana with Cognito or Identity Center SSO; do not run Grafana open on the internet. |
-
-**Acceptable but unusual:** Running self-managed ELK on ECS instead of Amazon OpenSearch + Managed Grafana/AMP. Valid for learning and cost control at low volume; revisit when log volume or on-call burden grows.
+| F15 | OpenSearch not yet in templates or `config/aws-platform.yaml` | Add OpenSearch domain + Dashboards access to IaC backlog (Shared-Services); size for dev volume with scale-up path. |
+| F16 | No log pipeline design (CloudWatch → OpenSearch) | Document in templates: Fluent Bit sidecar vs CloudWatch Logs subscription → OpenSearch Ingestion / direct indexing. |
+| F17 | No tenant/env labels on logs and metrics | Require `tenant`, `environment`, `service`, `journey` labels on ECS scrape targets and log fields; application `/metrics` already expose method/path/status via `prometheus-flask-exporter`. |
+| F18 | Prometheus HA and retention not defined | For prod: two Prometheus replicas or Amazon Managed Prometheus; define retention (e.g. 15d metrics, 30d logs in OpenSearch ISM). |
+| F19 | Dashboards and Grafana auth not defined | Integrate OpenSearch Dashboards and Grafana with Cognito or Identity Center SSO; do not expose either on the public internet. |
 
 **Good decision:** Importing existing CodeArtifact into CloudFormation instead of delete-and-recreate. CodeArtifact domains are stateful; recreation would break every consumer pipeline.
 
@@ -261,7 +311,7 @@ The intended operator model is **tag-driven**, similar to Developer Edition `doc
 
 | Local (Compose) | Cloud (ECS) |
 |-----------------|-------------|
-| `image: ghcr.io/mentor-forge/coordinator_api:latest` | Task definition references `…/coordinator_api:<promotion-tag>` |
+| `image: <local build or compose service name>` | Task definition references ECR `…/coordinator_api:<promotion-tag>` |
 | `docker compose up` pulls images and restarts containers | **Deploy** updates ECS services for a tenant/environment |
 
 Each **tenant** or **environment** has a stack configuration (IaC template or manifest) listing journey services and the **promotion tag** each service uses — for example the `dev` tenant uses `:latest`, `test` uses `:test`, `conference` uses `:conference`.
@@ -292,7 +342,7 @@ Deploy (runtime):
   → ECS service rolling update
 ```
 
-**Promote anywhere → anywhere (with guardrails):** Promotion is tag-to-tag in ECR (or GHCR mirror first, then ECR). The `from` and `to` tags are parameters — not a fixed pipeline only. Examples:
+**Promote anywhere → anywhere (with guardrails):** Promotion is tag-to-tag in **ECR**. The `from` and `to` tags are parameters — not a fixed pipeline only. Examples:
 
 | Promote | Typical use |
 |---------|-------------|
@@ -352,11 +402,8 @@ If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1
                                            │
                     ┌──────────────────────┼──────────────────────┐
                     ▼                      ▼                      ▼
-            CodeArtifact              GHCR :latest            (tests)
-            pip/npm deps            ghcr.io/mentor-forge/*
-                    │                      │
-                    │                      ▼
-                    │               ECR mirror (same digest)
+            CodeArtifact              ECR :latest              (tests)
+            pip/npm deps            Shared-Services
                     │                      │
                     └──────────┬───────────┘
                                ▼
@@ -378,7 +425,7 @@ If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1
 
 | Workflow | Type | Description |
 |----------|------|-------------|
-| CI on merge to `main` | Build | Push journey images to GHCR as `:latest`; mirror digest to ECR |
+| CI on merge to `main` | Build | Push journey images to ECR as `:latest` |
 | `promote --from latest --to test` | Promote | Tag current `:latest` images as `:test` in ECR (no rebuild) |
 | `deploy --tenant dev` | Deploy | Roll out ECS services for `dev` tenant using tag `:latest` (resolve to digest at deploy) |
 | `promote --from staging --to production` | Promote | **Guarded** — after approval, tag staging digest set as `:production` |
@@ -387,6 +434,8 @@ If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1
 | `deploy --tenant conference` | Deploy | Stand up conference tenant in `mentorhub-dev`; tear down after event |
 
 GitHub Actions drive **promote** and **deploy** workflows (workflow_dispatch, environment approvals, or tag-push triggers). Implementation tasks: R030 (ECR), R100 (CD wiring).
+
+**CI configuration:** Organization variables (`AWS_REGION`, CodeArtifact names), org secrets (`AWS_ROLE_ARN_READ`, `AWS_ROLE_ARN_PUBLISH`), workflow patterns per repo type, and Dockerfile auth patterns are documented in [docs/github-ci.md](./docs/github-ci.md).
 
 ---
 
@@ -423,12 +472,12 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | Pattern | Why it's unusual | When it's OK here |
 |---------|------------------|-------------------|
 | Multi-tenant dev on shared DocumentDB | Production pattern would be account-per-tenant or cluster-per-tenant | Dev/test only; saves cost; team understands isolation is logical not physical |
-| GHCR + ECR dual push | Most AWS-native shops use ECR only | Transitional while CI stays on GitHub; retire GHCR when ECR path is proven |
+| No public container registry | Many OSS projects publish Docker Hub / GHCR images | Intentional — third parties fork and build; see [Open source](#open-source-and-third-party-implementation) |
 | Conference tenant runs **prod images** in **dev account** | Blurs environment boundaries | Short-lived demos with no prod data; tear down after event |
 | ECS for everything including SPAs | SPAs are static files | Acceptable for pilot; revisit for cost and caching |
 | API Gateway instead of ALB | ALB is more common for pure microservices | Gateway fits path-based multi-journey routing and future authorizers |
 | DocumentDB instead of MongoDB Atlas | Second vendor can be simpler for small teams | In-VPC, IAM-integrated, one AWS bill — reasonable for this org size |
-| Self-managed ELK + Prometheus on ECS | AWS-native path is OpenSearch + AMP + AMG | Valid for team learning and early volume; plan migration trigger (log GB/day, on-call load) |
+| Self-managed Prometheus + Grafana on ECS | AWS-native path is AMP + AMG | Acceptable initially; revisit when on-call load grows |
 
 ---
 
@@ -439,11 +488,11 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | Shared-Services account | Created |
 | CodeArtifact domain + repos | Operational; CloudFormation import in progress (R020) |
 | GitHub OIDC (CodeArtifact) | Operational (manual); codify in CFN (R031) |
-| ECR + GHCR dual-push | In progress (R030) |
+| ECR (CI push target) | In progress (R030) |
 | mentorhub-dev account | Created; **no workload stacks deployed** |
 | VPC, DocumentDB, ECS, API Gateway, Cognito | Templates scaffolded; not deployed |
 | mentorhub-staging / production accounts | Not created |
-| ELK (Elasticsearch, Logstash, Kibana) | Not started — target in Shared-Services |
+| Amazon OpenSearch Service + Dashboards | Not started — target in Shared-Services |
 | Prometheus + Grafana | Not started — target in Shared-Services |
 
 See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and ARNs.
@@ -459,16 +508,16 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 3. Private subnets for workloads; public entry through a managed edge (API Gateway).
 4. Platform services (registry, packages) live in a shared account; apps do not.
 5. Dev cost controls (multi-tenant, shared cluster) are intentional; prod isolation is different on purpose.
-6. Audit (CloudTrail), logs (ELK/Kibana), and metrics (Prometheus/Grafana) are three different systems — do not conflate them.
+6. Audit (CloudTrail), logs (OpenSearch Dashboards), and metrics (Prometheus/Grafana) are three different systems — do not conflate them.
 
 **For the Junior Architect — before staging/prod templates:**
 
 1. Fix region/AZ naming and copy-paste errors in `architecture.yaml`.
 2. Document cross-account ECR pull and implement in IaC.
 3. Resolve SPA hosting and tenant routing (F11, F12).
-4. Add production hardening checklist: WAF, DocumentDB backups, ELK/Grafana access control, realistic budgets.
+4. Add production hardening checklist: WAF, DocumentDB backups, OpenSearch/Grafana access control, realistic budgets.
 5. Record all account IDs in `config/aws-platform.yaml`.
-6. Design log pipeline (CloudWatch → ELK) and metrics labels for multi-tenant dev (F15–F19).
+6. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
 
 ---
 
@@ -479,6 +528,7 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 | [README.md](./README.md) | Platform overview (accounts, tenancy, CI/CD) — *what* |
 | **ARCHITECTURE.md** (this file) | Design rationale and review — *why* and *what to fix* |
 | [config/aws-platform.yaml](./config/aws-platform.yaml) | As-built configuration values |
+| [docs/github-ci.md](./docs/github-ci.md) | GitHub org variables, secrets, CI workflows |
 | [docs/InfrastructureDiagram.svg](./docs/InfrastructureDiagram.svg) | Platform diagram (WIP) |
 | [docs/ArchitectureDiagram.dev.svg](./docs/ArchitectureDiagram.dev.svg) | Cloud DEV runtime diagram (WIP) |
 | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) | Product journeys and repositories |

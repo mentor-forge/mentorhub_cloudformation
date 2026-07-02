@@ -6,6 +6,30 @@ Infrastructure-as-code for MentorHub on AWS. CloudFormation templates, parameter
 
 ---
 
+## Open source
+
+MentorHub application **source code** is open on GitHub under the project license. This repository is Mentor Forge’s **reference AWS implementation** — not the only way to run the product.
+
+| What we publish openly | What we do not provide as a public service |
+|------------------------|---------------------------------------------|
+| Application and library source repos | Pre-built **public container images** (no public GHCR) |
+| Runtime contract (APIs, env vars, JWT/OIDC expectations) | **CodeArtifact** access without invitation |
+| [Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) (local Docker Compose) | Mentor Forge production operations or SLAs |
+| This CloudFormation repo as an AWS reference design | Turnkey multi-cloud IaC |
+
+**Mentor Forge operators** build on merge to `main`, resolve dependencies from **CodeArtifact**, push images to **ECR** (Shared-Services), and deploy to **ECS** using the workflows and roles documented in [docs/github-ci.md](./docs/github-ci.md). Contributors who need the same pipeline are **invited** to the organization and AWS access model — we do not subsidize unbounded use of shared build infrastructure.
+
+**Third-party implementers** who want to run MentorHub in their own cloud (AWS, GCP, Azure, on-prem, etc.) should expect to:
+
+1. **Fork** the application repositories they need.
+2. **Replace dependency management** — publish or vendor `api-utils` / `spa_utils` equivalents on their own PyPI/npm (or git pins), not Mentor Forge CodeArtifact.
+3. **Implement their own CI/CD** — build containers and push to **their** registry; we do not publish images for external pull.
+4. **Provide their own IaC** — use this repo as a reference for AWS if helpful, or map the same containers and contracts to another platform.
+
+That boundary is intentional: **open source software**, **operator-specific implementation**. See [ARCHITECTURE.md — Open source](./ARCHITECTURE.md#open-source-and-third-party-implementation) for rationale and intern takeaways.
+
+---
+
 ## AWS organization
 
 ```text
@@ -46,7 +70,7 @@ Account for platform services shared across MentorHub AWS accounts. Does not run
 | Logging | CloudTrail |
 | Package management | CodeArtifact |
 | Container registry | Elastic Container Registry (ECR) |
-| Log analytics | Elasticsearch, Logstash, Kibana (ELK) |
+| Log analytics | Amazon OpenSearch Service, OpenSearch Dashboards |
 | Metrics and dashboards | Prometheus, Grafana |
 | Infrastructure automation | CloudFormation |
 | GitHub automation access | IAM OIDC provider and roles |
@@ -68,8 +92,8 @@ Multi-tenant account for development, test, training, conference, and other shor
 | Email | SES | `mentorhub-dev-ses` |
 | Object storage | S3 | `mentorhub-dev-s3` |
 | Secrets | Secrets Manager | tenant-scoped |
-| Log collection | CloudWatch Logs | forwards to Shared-Services ELK |
-| Metrics | Prometheus scrape / ADOT | forwards to Shared-Services Grafana |
+| Log collection | CloudWatch Logs | forwards to Shared-Services OpenSearch |
+| Metrics | Prometheus scrape of each API `GET /metrics` | Shared-Services Grafana |
 
 **Tenants** (logical environments within the account):
 
@@ -141,9 +165,8 @@ Container images are immutable. CI builds once; **promote** moves images between
 
 ```text
 merge to main
-  → build container image
-  → push to GHCR (:latest)
-  → ECR retrieves image from GHCR (same digest)
+  → build container image (CodeArtifact deps via GitHub OIDC)
+  → push to ECR (Shared-Services, :latest)
   → promote (tag → tag, e.g. :latest → :test, :production → :conference)
   → deploy (ECS rollout for tenant/env using configured promotion tag)
 ```
@@ -163,11 +186,12 @@ At deploy time, automation resolves the promotion tag to an image digest for aud
 
 | Stage | Mechanism |
 |-------|-----------|
-| **CI** | GitHub Actions builds on merge to `main` and pushes images to **GHCR** (`ghcr.io/mentor-forge/*`) |
-| **Registry mirror** | **ECR** (Shared-Services) receives the same digest from GHCR |
+| **CI** | GitHub Actions builds on merge to `main` and pushes images to **ECR** (Shared-Services) |
 | **CD** | **Promote** workflows retag images in ECR (`from` → `to`); **deploy** workflows roll ECS for a tenant/environment using its configured promotion tag |
 
-Build dependencies (Python and npm packages) are resolved from **CodeArtifact** in Shared-Services during CI.
+Build dependencies (Python and npm packages) are resolved from **CodeArtifact** in Shared-Services during CI. Journey API/SPA workflows assume an IAM role via **GitHub OIDC** (`AWS_ROLE_ARN_READ` org secret); library repos publish on `v*` tags with `AWS_ROLE_ARN_PUBLISH`.
+
+**GitHub org configuration** (variables, secrets, workflow patterns, repo inventory): [`docs/github-ci.md`](./docs/github-ci.md). Canonical values: [`config/aws-platform.yaml`](./config/aws-platform.yaml) (`github_org_variables`, `github_org_secrets`, `github_ci`).
 
 ### Deploy automation (examples)
 
@@ -226,6 +250,7 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 | Architecture rationale and SA review | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Platform overview (accounts, tenancy, CI/CD) | [`README.md`](./README.md) |
 | AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
+| GitHub org CI, secrets, workflows | [`docs/github-ci.md`](./docs/github-ci.md) |
 | Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
 | Cloud DEV runtime diagram | [`docs/ArchitectureDiagram.dev.svg`](./docs/ArchitectureDiagram.dev.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |

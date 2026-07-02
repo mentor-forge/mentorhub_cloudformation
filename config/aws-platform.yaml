@@ -86,6 +86,52 @@ github_org_variables:
   CODEARTIFACT_PYPI_REPO: mentorhub-pypi
   CODEARTIFACT_NPM_REPO: mentorhub-npm
 
+github_org_secrets:
+  # IAM role ARNs in Shared-Services — not access keys. See docs/github-ci.md.
+  AWS_ROLE_ARN_READ:
+    iam_role: GitHubActionsCodeArtifactRead
+    purpose: codeartifact_read_for_docker_builds
+    workflows:
+      - journey_api_docker_push
+      - journey_spa_docker_push
+  AWS_ROLE_ARN_PUBLISH:
+    iam_role: GitHubActionsCodeArtifactPublish
+    purpose: codeartifact_publish_on_version_tag
+    workflows:
+      - api_utils_publish_package
+      - spa_utils_publish_package
+  # Planned (R030 / R100):
+  # AWS_ROLE_ARN_ECR_PUSH: GitHubActionsECRPush
+  # AWS_ROLE_ARN_ECS_DEPLOY: GitHubActionsECSDeploy
+
+github_ci:
+  organization: mentor-forge
+  documentation: docs/github-ci.md
+  oidc_provider: token.actions.githubusercontent.com
+  oidc_account: shared_services
+  workflow_patterns:
+    journey_api_docker_push:
+      trigger: push_to_main
+      registry: ghcr.io/mentor-forge
+      codeartifact: pypi
+      docker_build_arg: PIP_INDEX_URL
+    journey_spa_docker_push:
+      trigger: push_to_main
+      registry: ghcr.io/mentor-forge
+      codeartifact: npm
+      docker_build_secret: codeartifact_token
+    library_publish:
+      trigger: push_tag_v_star
+      targets:
+        - repo: mentorhub_api_utils
+          registry: codeartifact_pypi
+        - repo: mentorhub_spa_utils
+          registry: codeartifact_npm
+    cfn_lint:
+      repo: mentorhub_cloudformation
+      trigger: push_and_pull_request_main
+      aws_auth: none
+
 sso_profiles:
   shared_services: mentorhub-shared
   dev_workload: mentorhub-dev
@@ -97,18 +143,26 @@ observability:
   status: not_started
   placement: shared_services
   logs:
-    stack: elk
+    stack: amazon_opensearch_service
+    decision: managed_opensearch_not_self_managed_elk
     components:
-      - elasticsearch
-      - logstash
-      - kibana
+      - opensearch_domain
+      - opensearch_dashboards
+      - fluent_bit_or_opensearch_ingestion
     collection: cloudwatch_logs_forwarding
   metrics:
     stack: prometheus_grafana
     components:
       - prometheus
       - grafana
-    collection: adot_or_exporter_scrape
+    collection: ecs_task_scrape_and_optional_adot
+    application:
+      endpoint: /metrics
+      implementation: api_utils.create_metric_routes
+      library: prometheus-flask-exporter
+      auth: none
+      standard: required_on_all_domain_apis
+      scrape_target: api_container_private_ip
   audit:
     service: cloudtrail
     note: separate from application logs and metrics
