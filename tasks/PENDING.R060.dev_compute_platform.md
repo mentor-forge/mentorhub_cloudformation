@@ -21,6 +21,8 @@ Deploy Fargate ECS cluster, CloudWatch log groups, and task execution role (ECR 
 - [ ] **R060.2a** Optional stack `templates/dev/ecr-pull-through.yaml` — pull-through cache rule from Shared-Services ([docs/ecr-cross-account.md](../docs/ecr-cross-account.md))
 - [ ] **R060.3** Validate: empty cluster visible in console
 
+Log forwarding to Shared-Services OpenSearch is defined in [R031](./PENDING.R031.shared_services_cloudtrail_budget.md) (R031.8–R031.9); wire forwarding when ECS services deploy (R080+).
+
 ## Validation expectations
 
 - Cluster and IAM roles deploy without service definitions.

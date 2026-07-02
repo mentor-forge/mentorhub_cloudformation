@@ -6,7 +6,7 @@
 
 ## Goal
 
-Codify Shared-Services governance (CloudTrail, budget alarm) and import or reference existing GitHub OIDC roles for CodeArtifact that were created manually during initial platform setup.
+Codify Shared-Services governance (CloudTrail, budget alarm) and import or reference existing GitHub OIDC roles for CodeArtifact that were created manually during initial platform setup. Deploy Shared-Services log analytics foundation (OpenSearch domain and CloudWatch → OpenSearch pipeline design).
 
 Runs after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 
@@ -14,6 +14,7 @@ Runs after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 
 - [README.md](../README.md)
 - [config/aws-platform.yaml](../config/aws-platform.yaml)
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — observability (F15, F16)
 
 ## Requirements
 
@@ -29,6 +30,15 @@ Runs after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 - [ ] **R031.5** Template `templates/shared-services/cloudtrail.yaml` + budget alarm (~$25/month)
 - [ ] **R031.6** Validate: trail logging; budget notification received
 
+### Log pipeline (CloudWatch → OpenSearch)
+
+Shared-Services hosts Amazon OpenSearch Service; workload accounts forward ECS and ALB logs. See [ARCHITECTURE.md](../ARCHITECTURE.md) observability (F15, F16).
+
+- [ ] **R031.7** Template `templates/shared-services/opensearch.yaml` — OpenSearch domain + Dashboards access; size for dev volume with scale-up path (F15)
+- [ ] **R031.8** Design and document log pipeline: Fluent Bit sidecar vs CloudWatch Logs subscription → OpenSearch Ingestion / direct indexing; index prefixes or ISM policies per environment/tenant (F16)
+- [ ] **R031.9** Dev workload forwarding — template or documented pattern for mentorhub-dev (CloudWatch Logs → Shared-Services OpenSearch); enrich with `tenant`, `environment`, `service`, `journey` log fields; coordinate with [R060](./PENDING.R060.dev_compute_platform.md) log groups
+- [ ] **R031.10** Validate: sample log line from mentorhub-dev searchable in OpenSearch Dashboards
+
 ## Validation expectations
 
 - Lint and validate-template for each new template.
@@ -41,7 +51,7 @@ Runs after [R030](./RUNNING.R030.ecr_ghcr_connection.md) ships.
 
 ## Exit criteria
 
-Shared-Services CloudTrail and budget are under CloudFormation; CodeArtifact OIDC roles are codified or documented as imported.
+Shared-Services CloudTrail and budget are under CloudFormation; CodeArtifact OIDC roles are codified or documented as imported; OpenSearch domain and log pipeline design are in templates or documented for dev workload forwarding.
 
 ## Change control checklist
 

@@ -380,8 +380,8 @@ Scrape agents in the workload VPC discover ECS tasks and remote-write to AMP. AM
 
 | #   | Finding                                                       | Recommendation                                                                                                                                                                               |
 | --- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F15 | OpenSearch not yet in CloudFormation templates | Add OpenSearch domain + Dashboards access to IaC backlog (Shared-Services); size for dev volume with scale-up path.                                                                          |
-| F16 | No log pipeline design (CloudWatch → OpenSearch)              | Document in templates: Fluent Bit sidecar vs CloudWatch Logs subscription → OpenSearch Ingestion / direct indexing.                                                                          |
+| F15 | OpenSearch not yet in CloudFormation templates | Add OpenSearch domain + Dashboards access to IaC backlog (Shared-Services); size for dev volume with scale-up path (R031.7). |
+| F16 | No log pipeline design (CloudWatch → OpenSearch)              | Document in templates: Fluent Bit sidecar vs CloudWatch Logs subscription → OpenSearch Ingestion / direct indexing (R031.8). |
 | F17 | No tenant/env labels on logs and metrics                      | Require `tenant`, `environment`, `service`, `journey` on scrape relabel and log fields; application `/metrics` expose method/path/status via `api_utils`. |
 | F18 | AMP retention and alert rules not defined                     | Set AMP workspace retention (e.g. 15d) and baseline alert rules in AMG for dev/test tenants. |
 | F19 | AMG and OpenSearch Dashboards auth not defined                | Integrate AMG and OpenSearch Dashboards with IAM Identity Center SSO; do not expose either on the public internet. |
@@ -614,9 +614,7 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 
 ---
 
-
-
-## Recommendations summary
+## Key Aspects
 
 **For interns — learn these patterns:**
 
@@ -626,12 +624,6 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 4. Platform services (registry, packages) live in a shared account; apps do not.
 5. Dev cost controls (multi-tenant, shared cluster) are intentional; prod isolation is different on purpose.
 6. Audit (CloudTrail), logs (OpenSearch Dashboards), and metrics (AMP/AMG) are three different systems — do not conflate them.
-
-**For the Junior Architect — before staging/prod templates:**
-
-1. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
-2. Implement cross-account ECR in IaC (R030 repository policies, R060 execution role, pull-through template) per [docs/ecr-cross-account.md](./docs/ecr-cross-account.md).
-3. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/AMG access) is documented in platform sections — implement in R130 templates and runbooks.
 
 ---
 
@@ -643,7 +635,7 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 | Document                                                                                                                           | Purpose                                               |
 | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | [README.md](./README.md)                                                                                                           | Platform overview (accounts, tenancy, CI/CD) — *what* |
-| **ARCHITECTURE.md** (this file)                                                                                                    | Design rationale and review — *why* and *what to fix* |
+| **ARCHITECTURE.md** (this file)                                                                                                    | Design rationale and review — *why*  |
 | [config/aws-platform.yaml](./config/aws-platform.yaml)                                                                             | As-built configuration values                         |
 | [docs/github-ci.md](./docs/github-ci.md)                                                                                           | GitHub org variables, secrets, CI workflows           |
 | [docs/ecr-cross-account.md](./docs/ecr-cross-account.md)                                                                         | Cross-account ECR pull and pull-through cache         |
