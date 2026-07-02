@@ -119,7 +119,7 @@ Single-tenant account that mirrors production topology. May be scaled down or sh
 | Service | AWS | Name / detail |
 |---------|-----|---------------|
 | Logging | CloudTrail | |
-| Network | VPC | `mentorhub-staging-vpc` — CIDR TBD |
+| Network | VPC | `mentorhub-staging-vpc` — `10.1.0.0/16` |
 | Container runtime | ECS | `mentorhub-staging-ecs` |
 | Database | DocumentDB | `mentorhub-staging-documentdb` |
 | Identity | Cognito | `mentorhub-staging-cognito` |
@@ -139,7 +139,7 @@ Single-tenant **always-on** live production environment.
 | Service | AWS | Name / detail |
 |---------|-----|---------------|
 | Logging | CloudTrail | |
-| Network | VPC | `mentorhub-production-vpc` — CIDR TBD |
+| Network | VPC | `mentorhub-production-vpc` — `10.2.0.0/16` |
 | Container runtime | ECS | `mentorhub-production-ecs` |
 | Database | DocumentDB | `mentorhub-production-documentdb` |
 | Identity | Cognito | `mentorhub-production-cognito` |
@@ -160,7 +160,7 @@ Single-tenant **always-on** live production environment.
 | Environment | AWS account | Tenancy | Notes |
 |-------------|-------------|---------|-------|
 | Local | Developer machine (Docker Compose) | Single stack | See [mentorhub Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) |
-| Development / Test / Training / Conference | `mentorhub-dev` | Multi-tenant | Shared DocumentDB cluster; one database per tenant |
+| Development / Test / Training / Conference | `mentorhub-dev` | Multi-tenant | Shared DocumentDB cluster; one database per tenant; **path-based** ALB routing `/{tenant}/{journey}/*` |
 | Staging | `mentorhub-staging` | Single tenant | Mirror of production; spin down when not in use |
 | Production | `mentorhub-production` | Single tenant | Always-on live environment |
 

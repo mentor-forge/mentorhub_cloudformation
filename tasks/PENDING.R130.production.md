@@ -17,7 +17,7 @@ Deploy production account with HA, backups, production IdP, and sign-off checkli
 ## Requirements
 
 - [ ] **R130.1** Production account + stricter IAM
-- [ ] **R130.2** Add `parameters/production.json`
+- [ ] **R130.2** Production parameters — record account ID when created; **`VpcCidr` `10.2.0.0/16`** in `parameters/production.json` and `config/aws-platform.yaml` (non-overlapping with dev and staging)
 - [ ] **R130.3** HA DocumentDB, backups, multi-AZ where required
 - [ ] **R130.4** Production Cognito / IdP per sre_standards.md
 - [ ] **R130.5** Route53 production domain + ACM

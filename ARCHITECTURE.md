@@ -190,7 +190,21 @@ Full IAM actions, URI examples, and R030/R060 checklist: [`docs/ecr-cross-accoun
 | **ACM**                    | Workload accounts               | TLS certificates                       | Free managed certs on the ALB HTTPS listener.                                                              |
 | **AWS WAF**                | Workload accounts (prod required) | Web application firewall               | Web ACL on the **production ALB** — required before go-live (R130). Omitted in dev/test to save cost.     |
 
-**Key decision:** Internet-facing **ALB** in public subnets; **ECS tasks stay in private subnets** registered as target group targets. Operators get one hostname, path-based routing, and standard ECS observability (ALB access logs → OpenSearch).
+**Key decision:** Internet-facing **ALB** in public subnets; **ECS tasks stay in private subnets** registered as target group targets. Operators get one hostname per environment, **path-based** listener rules, and standard ECS observability (ALB access logs → OpenSearch).
+
+#### Tenant and journey routing — path-based (decided)
+
+**Decision:** **Path-based routing** on a **shared hostname per workload account** — not hostname-per-tenant. One ACM certificate per environment; ALB listener rules match **path prefixes**.
+
+| Scope | Pattern | Example |
+|-------|---------|---------|
+| **Journey** (all environments) | `/{journey}/*` | `/coordinator/*`, `/mentor/*`, `/mentee/*`, `/customer/*` |
+| **Tenant** (multi-tenant dev only) | `/{tenant}/{journey}/*` when multiple tenants share the ALB | `/dev/coordinator/*`, `/test/coordinator/*` |
+| **Staging / production** | Journey paths only — single tenant per account | `/coordinator/*` (no tenant segment) |
+
+Each journey SPA nginx container continues to **proxy `/api/*`** to its paired API task (Developer Edition parity). The ALB routes to SPA target groups; APIs are reached via nginx proxy unless a listener rule exposes API paths directly for health checks.
+
+**Implementation:** `templates/dev/alb.yaml` (R070) — listener rules and target group outputs. Canonical paths: [`config/aws-platform.yaml`](./config/aws-platform.yaml) → `edge.routing`.
 
 #### ACM, WAF, and ALB — what they are and how we use them
 
@@ -200,7 +214,7 @@ Full IAM actions, URI examples, and R030/R060 checklist: [`docs/ecr-cross-accoun
 
 **Production go-live (WAF):** Enable AWS WAF on the production ALB with at least AWS Managed Rules (common rule set, known bad inputs); add rate-based rules when traffic patterns are known. Template: extend `templates/dev/alb.yaml` pattern for production with `AWS::WAFv2::WebACLAssociation`.
 
-**ALB (Application Load Balancer)** — A **regional load balancer** in the VPC that distributes HTTP/HTTPS to **target groups** (ECS services). It health-checks tasks, supports path/host/header routing, and integrates with ECS service connect patterns. **How we use it:** One **internet-facing ALB** per workload environment; listener rules send journey paths to SPA and API target groups (see F12 for hostname vs path tenancy). This matches how nginx proxies in Developer Edition Compose.
+**ALB (Application Load Balancer)** — A **regional load balancer** in the VPC that distributes HTTP/HTTPS to **target groups** (ECS services). It health-checks tasks, supports path/host/header routing, and integrates with ECS service connect patterns. **How we use it:** One **internet-facing ALB** per workload environment; **path-based** listener rules send `/{tenant}/{journey}/*` (dev) or `/{journey}/*` (single-tenant accounts) to SPA and API target groups. This matches how nginx proxies in Developer Edition Compose.
 
 #### SPA hosting — decided (ECS nginx containers)
 
@@ -213,7 +227,7 @@ Full IAM actions, URI examples, and R030/R060 checklist: [`docs/ecr-cross-accoun
 - **`/api/*` proxy** — already implemented in `nginx.conf.template`; ALB can route journey paths without splitting static vs API hosting models.
 - **Team scale** — four journey SPAs at apprentice volume; Fargate cost is acceptable until traffic or cost review says otherwise.
 
-**Revisit trigger:** If production traffic or monthly ECS cost for static serving justifies moving **SPA build output** to S3 + CloudFront and routing `/api/*` on the ALB only (See F11 follow-up). APIs stay on ECS.
+**Revisit trigger:** If production traffic or monthly ECS cost for static serving justifies moving **SPA build output** to S3 + CloudFront and routing `/api/*` on the ALB only. APIs stay on ECS.
 
 #### VPC interface endpoints (workload VPCs)
 
@@ -574,10 +588,7 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 
 | #   | Finding                                                                          | Severity              | Recommendation                                                                                                                                                              |
 | --- | -------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F11 | **SPA hosting on ECS nginx** (decided)                                           | Low (monitor)         | Revisit **S3 + CloudFront** when static hosting cost or traffic warrants; deploy asset would become `dist/` files in S3, not a cache over nginx. APIs stay on ECS.          |
-| F12 | **Tenant routing undecided** (hostname per tenant vs path prefix on shared host) | Medium                | ALB supports both (host-based vs path-based listener rules). Path-based (`/coordinator/*`) is simpler with one cert; hostname-per-tenant mirrors prod more closely. Pick one for dev and document in templates. |
 | F13 | **GitHub OIDC roles still manual**; placeholder CloudFormation template          | Medium                | Complete R031 — drift between console and IaC is already a risk for CodeArtifact roles.                                                                                     |
-| F14 | **CIDR** `TBD` for staging and production VPCs                                   | Medium                | Plan non-overlapping CIDRs if future VPC peering or TGW is possible (e.g. `10.1.0.0/16`, `10.2.0.0/16`).                                                                    |
 
 
 
@@ -590,7 +601,7 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | Multi-tenant dev on shared DocumentDB                     | Production pattern would be account-per-tenant or cluster-per-tenant | Dev/test only; saves cost; team understands isolation is logical not physical                              |
 | No public container registry                              | Many OSS projects publish Docker Hub / GHCR images                   | Intentional — third parties fork and build; see [Open source](#open-source-and-third-party-implementation) |
 | Conference tenant runs **prod images** in **dev account** | Blurs environment boundaries                                         | Short-lived demos with no prod data; tear down after event                                                 |
-| ECS nginx for journey SPAs                                | S3 + CloudFront is cheaper at scale for static files                 | **Decided** for pilot — one ECR/deploy model; nginx proxies `/api/*`; revisit F11 when cost/traffic grows |
+| ECS nginx for journey SPAs                                | S3 + CloudFront is cheaper at scale for static files                 | **Decided** for pilot — one ECR/deploy model; nginx proxies `/api/*`; revisit S3 + CloudFront when cost/traffic grows |
 | DocumentDB instead of MongoDB Atlas                       | Second vendor can be simpler for small teams                         | In-VPC, IAM-integrated, one AWS bill — reasonable for this org size                                        |
 | Self-managed Prometheus + Grafana on ECS                  | AWS-native path is AMP + AMG                                         | Acceptable initially; revisit when on-call load grows                                                      |
 
@@ -634,10 +645,9 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 
 **For the Junior Architect — before staging/prod templates:**
 
-1. Resolve tenant routing on the ALB (F12); SPA hosting is ECS nginx containers (F11 — decided).
-2. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
-3. Implement cross-account ECR in IaC (R030 repository policies, R060 execution role, pull-through template) per [docs/ecr-cross-account.md](./docs/ecr-cross-account.md).
-4. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/Grafana access) is documented in platform sections — implement in R130 templates and runbooks.
+1. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
+2. Implement cross-account ECR in IaC (R030 repository policies, R060 execution role, pull-through template) per [docs/ecr-cross-account.md](./docs/ecr-cross-account.md).
+3. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/Grafana access) is documented in platform sections — implement in R130 templates and runbooks.
 
 ---
 

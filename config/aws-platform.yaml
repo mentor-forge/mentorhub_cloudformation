@@ -67,7 +67,7 @@ accounts:
     budget_usd_monthly: 100
     network:
       vpc_name: mentorhub-staging-vpc
-      vpc_cidr: TBD
+      vpc_cidr: 10.1.0.0/16
       availability_zones:
         - us-east-1a
         - us-east-1b
@@ -77,7 +77,7 @@ accounts:
     budget_usd_monthly: 100
     network:
       vpc_name: mentorhub-production-vpc
-      vpc_cidr: TBD
+      vpc_cidr: 10.2.0.0/16
       availability_zones:
         - us-east-1a
         - us-east-1b
@@ -171,6 +171,30 @@ container_registry:
     cloudformation_stacks:
       shared_services: templates/shared-services/ecr.yaml
       pull_through_dev: templates/dev/ecr-pull-through.yaml
+
+edge:
+  routing:
+    decision: path_based
+    hostname_per_environment: true
+    tenant_path_prefix:
+      mentorhub_dev: true
+      single_tenant_accounts: false
+    journey_paths:
+      - coordinator
+      - mentor
+      - mentee
+      - customer
+    path_patterns:
+      journey: "/{journey}/*"
+      tenant_and_journey: "/{tenant}/{journey}/*"
+    implementation: templates/dev/alb.yaml
+    task: R070
+
+vpc_cidr_plan:
+  note: Non-overlapping /16 per account for optional future peering or TGW
+  mentorhub_dev: 10.0.0.0/16
+  mentorhub_staging: 10.1.0.0/16
+  mentorhub_production: 10.2.0.0/16
 
 production_hardening:
   go_live_tasks: R130

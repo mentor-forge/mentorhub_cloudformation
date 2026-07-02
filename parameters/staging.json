@@ -14,5 +14,9 @@
   {
     "ParameterKey": "StagingAccountId",
     "ParameterValue": "TBD"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.1.0.0/16"
   }
 ]

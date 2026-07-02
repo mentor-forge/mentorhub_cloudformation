@@ -19,7 +19,7 @@ Deploy **ALB** (public HTTPS edge), Cognito, S3, Route53/ACM, and SES stacks for
 
 ## Requirements
 
-- [ ] **R070.1** Template `templates/dev/alb.yaml` — internet-facing ALB, HTTPS listener (ACM), listener rules for pilot paths, target group outputs for R080
+- [ ] **R070.1** Template `templates/dev/alb.yaml` — internet-facing ALB, HTTPS listener (ACM), **path-based** listener rules (`/{tenant}/{journey}/*` in dev — see `config/aws-platform.yaml` → `edge.routing`), target group outputs for R080
 - [ ] **R070.2** Template `templates/dev/cognito.yaml` — user pool + app clients *(or defer: interim welcome JWT)*
 - [ ] **R070.3** Template `templates/dev/s3.yaml` — app bucket(s), block public access
 - [ ] **R070.4** Template `templates/dev/route53-acm.yaml` — hosted zone + ACM cert *(when domain owned)*
