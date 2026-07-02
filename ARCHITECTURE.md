@@ -1,8 +1,7 @@
-# MentorHub AWS Architecture — Solutions Architect Review
+# MentorHub AWS Architecture 
 
-**Reviewer:** Senior AWS Solutions Architect (peer review)  
+**LLM Reviewed by:** Senior AWS Solutions Architect (peer review)  
 **Status:** Target architecture with partial deployment  
-**Audience:** Interns (learn the *why*), Junior Architect (fix the gaps)  
 **Companion docs:** [README.md](./README.md) (platform *what*), [config/aws-platform.yaml](./config/aws-platform.yaml) (as-built values), [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) (product journeys)
 
 ---
