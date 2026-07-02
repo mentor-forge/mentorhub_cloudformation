@@ -296,15 +296,20 @@ observability:
       - fluent_bit_or_opensearch_ingestion
     collection: cloudwatch_logs_forwarding
   metrics:
-    stack: prometheus_grafana
+    stack: amazon_managed_prometheus_grafana
     components:
-      - prometheus
-      - grafana
-    collection: ecs_task_scrape_and_optional_adot
+      - amazon_managed_prometheus
+      - amazon_managed_grafana
+      - adot_or_metrics_scrape_agent
+    collection: ecs_task_scrape_remote_write_to_amp
+    placement: shared_services
+    multi_tenant:
+      tenants: [dev, test, training, conference]
+      journeys: [coordinator, customer, mentee, mentor]
+      labels: [tenant, environment, service, journey]
     application:
       endpoint: /metrics
       implementation: api_utils.create_metric_routes
-      library: prometheus-flask-exporter
       auth: none
       standard: required_on_all_domain_apis
       scrape_target: api_container_private_ip

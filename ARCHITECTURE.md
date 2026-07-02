@@ -287,20 +287,22 @@ Traffic and incidents will drive retention tuning; the architecture requires bac
 
 ### Observability and governance
 
-Observability is **layered**: AWS-native services for collection and audit, **Amazon OpenSearch Service** for log search and analysis, **Prometheus + Grafana** for metrics and dashboards.
+Observability is **layered**: AWS-native services for collection and audit, **Amazon OpenSearch Service** for logs, **Amazon Managed Prometheus (AMP)** and **Amazon Managed Grafana (AMG)** for metrics and dashboards.
 
 ```text
-Application / ECS tasks
+Application / ECS tasks (all journey APIs — 4 journeys, dev/test tenants)
         │
         ├──► CloudWatch Logs (ECS default log driver)
         │         │
         │         └──► Fluent Bit / subscription filter ──► OpenSearch (managed)
         │                                                      └──► OpenSearch Dashboards
         │
-        └──► Prometheus (scrape or ADOT collector) ──► Grafana (dashboards + alerts)
+        └──► ADOT collector or metrics scrape agent
+                    └──► remote write ──► Amazon Managed Prometheus (AMP)
+                                              └──► Amazon Managed Grafana (AMG)
 
 AWS API activity ──► CloudTrail (all accounts)     ← audit, not application logs
-AWS service metrics ──► CloudWatch Metrics          ← optional Grafana datasource
+AWS service metrics ──► CloudWatch Metrics          ← AMG datasource (DocumentDB, ECS, ALB)
 ```
 
 
@@ -332,45 +334,44 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
 
 **Key Takeaway:** CloudTrail tells you *who deleted a security group*. OpenSearch Dashboards tells you *why the coordinator API returned 500 at 2am*.
 
-#### Metrics and dashboards — Prometheus + Grafana (target)
+#### Metrics and dashboards — AMP + AMG
 
 
-| Component      | Used for                                                             | Why                                                                                                                                                |
-| -------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prometheus** | Time-series metrics (request rate, latency, errors, ECS task health) | Pull-based metrics model fits containers; PromQL is portable; integrates with alert routing.                                                       |
-| **Grafana**    | Dashboards, alerting, on-call views                                  | Single pane for journey health, tenant comparison, and infra metrics; can add CloudWatch as a secondary datasource for DocumentDB/ECS AWS metrics. |
+| Component | Used for | Why |
+| --------- | -------- | --- |
+| **Amazon Managed Prometheus (AMP)** | Time-series metrics storage and PromQL query | Managed HA and retention; no self-operated metrics database on ECS. |
+| **Amazon Managed Grafana (AMG)** | Dashboards, alerting, tenant/journey views | Multi-tenant dev/test monitoring across all journeys; Identity Center SSO; CloudWatch datasource for AWS service metrics. |
+| **ADOT collector or metrics scrape agent** | Scrape ECS tasks and remote-write to AMP | Pull `/metrics` from private API tasks; add `tenant`, `environment`, `service`, `journey` labels at scrape or deploy. |
 
 
-
+**Placement:** Shared-Services — one AMP workspace and one AMG workspace serve dev, test, and future staging/production (`environment` label distinguishes accounts). Initial dev deploy includes **all four journeys** (coordinator, customer, mentee, mentor); dev and test tenants share the same observability plane with tenant-scoped dashboards and alerts.
 
 #### Application metrics — `/metrics` on every API (implemented)
 
-All journey domain APIs follow [API Standards](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/api_standards.md): each Flask service calls `api_utils.create_metric_routes(app)` (`prometheus-flask-exporter` middleware) in `server.py`. That exposes `GET /metrics` in Prometheus text exposition format — no blueprint registration, no JWT (scrapers must reach the container, not the authenticated `/api/*` surface).
+All journey domain APIs follow [API Standards](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/api_standards.md): each Flask service calls `api_utils.create_metric_routes(app)` in `server.py`. That exposes `GET /metrics` in standard exposition format — no JWT (scrapers reach the container directly, not the authenticated `/api/*` surface).
 
 
 | What                  | Detail                                                                                                                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Standard**          | Required on every API alongside `/api/config` and `/docs/`* — see [api_utils](https://github.com/mentor-forge/mentorhub_api_utils/blob/main/api_utils/routes/metric_routes.py) `create_metric_routes()` |
+| **Standard**          | Required on every API alongside `/api/config` and `/docs/*` — see [api_utils](https://github.com/mentor-forge/mentorhub_api_utils/blob/main/api_utils/routes/metric_routes.py) `create_metric_routes()` |
 | **Metrics emitted**   | HTTP request counts, durations (histogram), status codes, active requests — labelled by method, path, and status                                                                                        |
 | **Domain APIs today** | coordinator, customer, mentee, mentor (and `api_utils` demo server)                                                                                                                                     |
 | **Local check**       | `curl http://localhost:<api-port>/metrics` (port per service; demo server uses `9092`)                                                                                                                  |
 
 
-**What Prometheus scrapes (target):**
+**What AMP ingests (via scrape agent):**
 
 1. **Application** — each ECS task’s API container at `http://<task-ip>:<api-port>/metrics` (private subnet; not via the ALB).
-2. **Platform** — ALB, ECS, DocumentDB via CloudWatch (optional Grafana datasource) or ADOT exporters where needed.
+2. **Platform** — ALB, ECS, DocumentDB via CloudWatch (AMG datasource) and ADOT exporters where needed.
 
-Prometheus in Shared-Services (or a cluster-local scraper forwarding to it) discovers ECS tasks and pulls `/metrics` on a short interval. Grafana dashboards aggregate per-service and per-tenant views once scrape targets carry `tenant`, `environment`, `service`, and `journey` labels (F17).
-
-**Placement:** Shared-Services alongside OpenSearch, or co-located on the same ECS cluster dedicated to platform tooling.
+Scrape agents in the workload VPC discover ECS tasks and remote-write to AMP. AMG dashboards filter by `tenant`, `environment`, `service`, and `journey` for production-like dev/test operations (F17).
 
 #### Key decisions
 
-- **Separate concerns:** CloudTrail (audit) ≠ OpenSearch (application logs) ≠ Prometheus (metrics). Mixing them creates noisy dashboards and wrong retention policies.
-- **Centralize observability tooling** in Shared-Services so dev tenants and future staging/prod feed one OpenSearch domain and one Grafana — operators do not context-switch per account.
-- **Standard** `/metrics` **on every API:** Application metrics are already implemented via `api_utils`; platform work is wiring Prometheus scrape targets and Grafana dashboards, not adding per-service exporters.
-- **Managed OpenSearch + self-managed Prometheus/Grafana (initially):** Logs benefit most from a managed service at our scale; metrics tooling may later move to Amazon Managed Prometheus / Amazon Managed Grafana if ops burden grows.
+- **Separate concerns:** CloudTrail (audit) ≠ OpenSearch (application logs) ≠ AMP (metrics). Mixing them creates noisy dashboards and wrong retention policies.
+- **Centralize observability** in Shared-Services so dev/test tenants and future staging/prod feed one OpenSearch domain, one AMP workspace, and one AMG workspace.
+- **Standard `/metrics` on every API:** Application metrics are implemented via `api_utils`; platform work is scrape agents, AMP remote write, and AMG dashboards — not per-service custom exporters.
+- **Managed metrics and dashboards:** AMP + AMG support multi-tenant dev/test monitoring across all four journeys.
 - **OpenSearch over self-managed ELK:** Same search UX family without operating Elasticsearch and Logstash on ECS.
 
 
@@ -381,9 +382,9 @@ Prometheus in Shared-Services (or a cluster-local scraper forwarding to it) disc
 | --- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | F15 | OpenSearch not yet in templates or `config/aws-platform.yaml` | Add OpenSearch domain + Dashboards access to IaC backlog (Shared-Services); size for dev volume with scale-up path.                                                                          |
 | F16 | No log pipeline design (CloudWatch → OpenSearch)              | Document in templates: Fluent Bit sidecar vs CloudWatch Logs subscription → OpenSearch Ingestion / direct indexing.                                                                          |
-| F17 | No tenant/env labels on logs and metrics                      | Require `tenant`, `environment`, `service`, `journey` labels on ECS scrape targets and log fields; application `/metrics` already expose method/path/status via `prometheus-flask-exporter`. |
-| F18 | Prometheus HA and retention not defined                       | For prod: two Prometheus replicas or Amazon Managed Prometheus; define retention (e.g. 15d metrics, 30d logs in OpenSearch ISM).                                                             |
-| F19 | Dashboards and Grafana auth not defined                       | Integrate OpenSearch Dashboards and Grafana with Cognito or Identity Center SSO; do not expose either on the public internet.                                                                |
+| F17 | No tenant/env labels on logs and metrics                      | Require `tenant`, `environment`, `service`, `journey` on scrape relabel and log fields; application `/metrics` expose method/path/status via `api_utils`. |
+| F18 | AMP retention and alert rules not defined                     | Set AMP workspace retention (e.g. 15d) and baseline alert rules in AMG for dev/test tenants. |
+| F19 | AMG and OpenSearch Dashboards auth not defined                | Integrate AMG and OpenSearch Dashboards with IAM Identity Center SSO; do not expose either on the public internet. |
 
 
 **Good decision:** Importing existing CodeArtifact into CloudFormation instead of delete-and-recreate. CodeArtifact domains are stateful; recreation would break every consumer pipeline.
@@ -577,23 +578,7 @@ CI (GitHub Actions) builds journey images and pushes to ECR on merge to main. Pr
 
 ---
 
-
-
-## Findings for the Junior Architect
-
-Items that are **incorrect, inconsistent, or risky** in the current design package. Platform truth lives in this repo ([`config/aws-platform.yaml`](./config/aws-platform.yaml), [README.md](./README.md)); product journeys remain in [`mentorhub/Specifications/architecture.yaml`](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml).
-
-### Should fix (architecture gaps)
-
-
-| #   | Finding                                                                          | Severity              | Recommendation                                                                                                                                                              |
-| --- | -------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F13 | **GitHub OIDC roles still manual**; placeholder CloudFormation template          | Medium                | Complete R031 — drift between console and IaC is already a risk for CodeArtifact roles.                                                                                     |
-
-
-
-
-### Acceptable but unusual (know the tradeoffs)
+## Acceptable but unusual Decisions (know the tradeoffs)
 
 
 | Pattern                                                   | Why it's unusual                                                     | When it's OK here                                                                                          |
@@ -603,7 +588,6 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | Conference tenant runs **prod images** in **dev account** | Blurs environment boundaries                                         | Short-lived demos with no prod data; tear down after event                                                 |
 | ECS nginx for journey SPAs                                | S3 + CloudFront is cheaper at scale for static files                 | **Decided** for pilot — one ECR/deploy model; nginx proxies `/api/*`; revisit S3 + CloudFront when cost/traffic grows |
 | DocumentDB instead of MongoDB Atlas                       | Second vendor can be simpler for small teams                         | In-VPC, IAM-integrated, one AWS bill — reasonable for this org size                                        |
-| Self-managed Prometheus + Grafana on ECS                  | AWS-native path is AMP + AMG                                         | Acceptable initially; revisit when on-call load grows                                                      |
 
 
 ---
@@ -623,7 +607,7 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | VPC, DocumentDB, ECS, ALB, Cognito         | Templates scaffolded; not deployed (`templates/dev/alb.yaml` — R070) |
 | mentorhub-staging / production accounts    | Not created                                           |
 | Amazon OpenSearch Service + Dashboards     | Not started — target in Shared-Services               |
-| Prometheus + Grafana                       | Not started — target in Shared-Services               |
+| AMP + AMG                                  | Not started — target in Shared-Services               |
 
 
 See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and ARNs.
@@ -641,13 +625,13 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 3. Private subnets for workloads; public entry through **ALB** (TLS + routing), not internet-facing tasks.
 4. Platform services (registry, packages) live in a shared account; apps do not.
 5. Dev cost controls (multi-tenant, shared cluster) are intentional; prod isolation is different on purpose.
-6. Audit (CloudTrail), logs (OpenSearch Dashboards), and metrics (Prometheus/Grafana) are three different systems — do not conflate them.
+6. Audit (CloudTrail), logs (OpenSearch Dashboards), and metrics (AMP/AMG) are three different systems — do not conflate them.
 
 **For the Junior Architect — before staging/prod templates:**
 
 1. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
 2. Implement cross-account ECR in IaC (R030 repository policies, R060 execution role, pull-through template) per [docs/ecr-cross-account.md](./docs/ecr-cross-account.md).
-3. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/Grafana access) is documented in platform sections — implement in R130 templates and runbooks.
+3. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/AMG access) is documented in platform sections — implement in R130 templates and runbooks.
 
 ---
 

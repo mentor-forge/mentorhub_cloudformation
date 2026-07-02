@@ -75,7 +75,7 @@ Account for platform services shared across MentorHub AWS accounts. Does not run
 | Package management | CodeArtifact |
 | Container registry | Elastic Container Registry (ECR) |
 | Log analytics | Amazon OpenSearch Service, OpenSearch Dashboards |
-| Metrics and dashboards | Prometheus, Grafana |
+| Metrics and dashboards | Amazon Managed Prometheus (AMP), Amazon Managed Grafana (AMG) |
 | Infrastructure automation | CloudFormation |
 | GitHub automation access | IAM OIDC provider and roles |
 
@@ -97,7 +97,7 @@ Multi-tenant account for development, test, training, conference, and other shor
 | Object storage | S3 | `mentorhub-dev-s3` |
 | Secrets | Secrets Manager | tenant-scoped |
 | Log collection | CloudWatch Logs | forwards to Shared-Services OpenSearch |
-| Metrics | Prometheus scrape of each API `GET /metrics` | Shared-Services Grafana |
+| Metrics | ADOT / agent scrape of each API `GET /metrics` | remote write to Shared-Services AMP; dashboards and alerts in AMG |
 
 **Tenants** (logical environments within the account):
 
