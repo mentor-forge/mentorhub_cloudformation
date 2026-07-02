@@ -87,15 +87,15 @@ IAM Identity Center              ECS (per account/tenant)
 | **GHCR** | GitHub | Primary container registry today | Natural home for GitHub Actions output; developers already pull from `ghcr.io/mentor-forge`. |
 | **ECR** | Shared-Services | AWS-side image store for ECS | ECS tasks pull from ECR in-region. Mirrors GHCR digest so deploy does not rebuild. |
 | **GitHub Actions** | GitHub | CI build and push | Build once on merge to `main`. |
-| **Tag/deploy workflows** | GitHub + AWS | CD promotion | Pin ECS task definitions to image **digests** per tenant or environment. |
+| **Tag/deploy workflows** | GitHub + AWS | CD promotion and rollout | **Promote** moves tags in ECR; **deploy** rolls ECS using tenant tag config. |
 
 **Promotion path:**
 
 ```text
-merge main → build → GHCR (+ ECR mirror) → tag/deploy → ECS (dev → test → staging → prod)
+merge main → build → GHCR (:latest) + ECR mirror → promote (tag → tag) → deploy (tenant/env ECS rollout)
 ```
 
-**Good decision:** Immutable images. Rebuilding at deploy time introduces "works in CI, different in prod" risk. Pinning digests in ECS task definitions is correct.
+**Good decision:** Immutable images. CI builds once; promotion moves the **same image** through environments — we do not rebuild at deploy time.
 
 **Unusual (interim):** Dual registry (GHCR **and** ECR). Common during migration from GitHub-centric CI to AWS-centric runtime. Plan to retire GHCR for AWS-only paths once ECR + ECS deploy is proven ([README.md](./README.md) CD section).
 
@@ -229,7 +229,121 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
 
 ---
 
-## CI/CD architecture
+## CI/CD and change management
+
+### Tags vs digests — what interns should know
+
+A container **image** is the built artifact (layers + manifest). Registries refer to it in two ways:
+
+| Concept | Example | Mutable? | What it means |
+|---------|---------|----------|----------------|
+| **Tag** | `:latest`, `:test`, `:staging`, `:production`, `:conference` | **Yes** (floating) | A label pointing at an image. The same tag can be moved to a newer build later. |
+| **Digest** | `sha256:abc123…` | **No** | A fingerprint of the exact image bytes. Same digest always means identical content. |
+
+**Floating tag** — a tag that automation or humans reassign over time. After every merge to `main`, CI pushes `coordinator_api:latest`. Tomorrow’s `:latest` is a different image than today’s, even though the tag name did not change.
+
+**Pinned digest** — ECS task definition (or deploy record) stores `image@sha256:abc123…` so the running task cannot silently change when someone pushes a new image under the same tag name.
+
+```text
+Tag :test     ──points-to──►  digest sha256:abc…  (today)
+Tag :test     ──points-to──►  digest sha256:def…  (tomorrow, after a new promote)
+
+Digest sha256:abc…  always means the same image, forever.
+```
+
+**Intern takeaway:** Tags are how we **name promotion channels** (`test`, `staging`, `conference`). Digests are how we **prove** what actually ran. Both are used; they solve different problems.
+
+---
+
+### Target model — promotion tags and ECS stack config
+
+The intended operator model is **tag-driven**, similar to Developer Edition `docker-compose.yaml`:
+
+| Local (Compose) | Cloud (ECS) |
+|-----------------|-------------|
+| `image: ghcr.io/mentor-forge/coordinator_api:latest` | Task definition references `…/coordinator_api:<promotion-tag>` |
+| `docker compose up` pulls images and restarts containers | **Deploy** updates ECS services for a tenant/environment |
+
+Each **tenant** or **environment** has a stack configuration (IaC template or manifest) listing journey services and the **promotion tag** each service uses — for example the `dev` tenant uses `:latest`, `test` uses `:test`, `conference` uses `:conference`.
+
+That matches the mental model: *“Deploy the `test` configuration”* means *“Run the images currently tagged `test` and restart tasks.”*
+
+---
+
+### Deploy vs promote
+
+Two separate automation actions:
+
+| Action | What it does | Does not |
+|--------|--------------|----------|
+| **Promote** | Copy a **tag pointer** from one promotion tag to another in the registry (same digest, additional or moved tag). Example: images tagged `:production` also receive `:conference`. | Rebuild images. Does not by itself restart ECS (unless chained). |
+| **Deploy** | For a target tenant/environment, resolve the configured promotion tag(s) to images, update ECS task definitions / services, and roll out (new tasks, drain old). | Rebuild images. |
+
+```text
+Promote (registry only):
+  FROM tag :production  →  TO tag :conference
+  (ECR: same manifest/digest gets a second tag, or tag is moved)
+
+Deploy (runtime):
+  tenant: conference
+  config says: use tag :conference for all journey images
+  → resolve :conference → digest(s)
+  → register ECS task definition
+  → ECS service rolling update
+```
+
+**Promote anywhere → anywhere (with guardrails):** Promotion is tag-to-tag in ECR (or GHCR mirror first, then ECR). The `from` and `to` tags are parameters — not a fixed pipeline only. Examples:
+
+| Promote | Typical use |
+|---------|-------------|
+| `:latest` → `:test` | Dev integration passed; advance to QA tenant |
+| `:test` → `:staging` | Release candidate to staging account |
+| `:staging` → `:production` | Approved release to live (guarded) |
+| `:production` → `:conference` | Stand up demo tenant with prod-known-good images |
+| `:latest` → `:dev` | Alias sync after CI (if `dev` is distinct from `latest`) |
+
+**Guardrails (target):**
+
+| Transition | Guardrail |
+|------------|-----------|
+| Any → `dev` / `test` / `training` | Open to developers or SRE (low risk, dev account) |
+| → `staging` | SRE or release manager; optional approval |
+| → `production` | **Required approval** (GitHub Environment, manual workflow dispatch, or change ticket); audit log of digest set promoted |
+| `production` → `conference` | Allowed for short-lived demos; uses `:conference` tag; **no prod data** — conference tenant in `mentorhub-dev` with its own database |
+| `production` → `latest` / `test` | **Blocked** — prod must not overwrite dev promotion channels |
+
+Conference deploy: promote `production` → `conference`, then **deploy** the `conference` tenant configuration (ECS stack pointing at `:conference`). Tear down tenant when the event ends.
+
+---
+
+### Design decision — tags for operators, digests for the running system
+
+The README and earlier drafts emphasized **digest pinning** in ECS. That is **not** a different workflow from tag-based promote/deploy. It is an implementation detail at **deploy** time:
+
+1. **Promote** uses tags (your model) — operators think in `:test`, `:staging`, `:conference`.
+2. **Deploy** reads the tenant’s configured tag, **resolves tag → digest** at deploy time, and registers the task definition with that digest (or records digest in deploy metadata).
+
+Why record digest if we use tags?
+
+| Reason | Explanation |
+|--------|-------------|
+| **Reproducibility** | “What is running in prod?” is answered by digest, not by “whatever `:production` means today.” |
+| **Race safety** | Between “start deploy” and “ECS pulls image,” someone could push a new image to `:production`. Resolving once at deploy start avoids half-updated fleets. |
+| **Audit** | Change management and incident response need “exactly this build,” not “the tag we think we meant.” |
+| **ECS best practice** | Task definitions should not rely on floating tags for production rollouts. |
+
+So: **your compose-like tag configuration is the target UX.** Digest appears in the **deploy implementation** and in **audit trails**, not as something operators must type.
+
+```text
+Operator view:     promote production → conference ; deploy tenant conference
+Automation view:   tag :conference → sha256:… ; ECS task def pins sha256:…
+```
+
+If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1` never reused), digest pinning becomes less critical for prod — but promotion tags like `:conference` remain useful for tenant config.
+
+---
+
+### CI/CD flow (build → registry → promote → deploy)
 
 ```text
 ┌─────────────┐     merge main      ┌──────────────────┐
@@ -242,19 +356,37 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
             pip/npm deps            ghcr.io/mentor-forge/*
                     │                      │
                     │                      ▼
-                    │               ECR (same digest)
+                    │               ECR mirror (same digest)
                     │                      │
                     └──────────┬───────────┘
                                ▼
-                    tag/deploy workflow
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-         dev tenant      test tenant      staging / prod
-         (ECS digest)    (ECS digest)     (ECS digest)
+              ┌────────────────────────────────────┐
+              │  Promote workflow (tag → tag)       │
+              │  e.g. :latest → :test              │
+              │       :production → :conference    │
+              └────────────────┬───────────────────┘
+                               ▼
+              ┌────────────────────────────────────┐
+              │  Deploy workflow (per tenant/env)  │
+              │  resolve tag → digest → ECS rollout│
+              └────────────────┬───────────────────┘
+                               ▼
+         dev / test / training / conference / staging / production
 ```
 
-**Intern takeaway:** The **artifact** (container image digest) is what moves. Tags like `:latest`, `:test`, `:staging` are pointers for humans and automation; ECS should pin the digest at deploy time.
+### Automation examples
+
+| Workflow | Type | Description |
+|----------|------|-------------|
+| CI on merge to `main` | Build | Push journey images to GHCR as `:latest`; mirror digest to ECR |
+| `promote --from latest --to test` | Promote | Tag current `:latest` images as `:test` in ECR (no rebuild) |
+| `deploy --tenant dev` | Deploy | Roll out ECS services for `dev` tenant using tag `:latest` (resolve to digest at deploy) |
+| `promote --from staging --to production` | Promote | **Guarded** — after approval, tag staging digest set as `:production` |
+| `deploy --tenant production` | Deploy | Roll out production ECS stack using `:production` |
+| `promote --from production --to conference` | Promote | Demo prep — prod-known-good images get `:conference` tag |
+| `deploy --tenant conference` | Deploy | Stand up conference tenant in `mentorhub-dev`; tear down after event |
+
+GitHub Actions drive **promote** and **deploy** workflows (workflow_dispatch, environment approvals, or tag-push triggers). Implementation tasks: R030 (ECR), R100 (CD wiring).
 
 ---
 
@@ -323,7 +455,7 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 **For interns — learn these patterns:**
 
 1. Separate accounts by blast radius and lifecycle, not by "we might need it someday."
-2. Build once, promote digests — never rebuild for deploy.
+2. Build once, promote by tag — never rebuild for deploy; deploy resolves tag to digest for the running fleet.
 3. Private subnets for workloads; public entry through a managed edge (API Gateway).
 4. Platform services (registry, packages) live in a shared account; apps do not.
 5. Dev cost controls (multi-tenant, shared cluster) are intentional; prod isolation is different on purpose.

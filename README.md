@@ -137,23 +137,25 @@ Single-tenant live production environment.
 
 ## Change management
 
-Container images are immutable. CI builds once; deployments promote the same image digest through environments using tags.
+Container images are immutable. CI builds once; **promote** moves images between registry tags; **deploy** rolls out ECS for a tenant or environment using those tags. See [ARCHITECTURE.md](./ARCHITECTURE.md#cicd-and-change-management) for tags vs digests, guardrails, and examples.
 
 ```text
 merge to main
   → build container image
-  → push to GHCR
+  → push to GHCR (:latest)
   → ECR retrieves image from GHCR (same digest)
-  → deploy by tagging ECR image to target tenant or environment
+  → promote (tag → tag, e.g. :latest → :test, :production → :conference)
+  → deploy (ECS rollout for tenant/env using configured promotion tag)
 ```
 
-Promotion path:
+Typical promotion path:
 
 ```text
 DEV  →  TEST  →  STAGING  →  PRODUCTION
+                              └→ CONFERENCE (short-lived tenant in dev account)
 ```
 
-Each stage pins ECS task definitions to an image digest, not a floating tag.
+At deploy time, automation resolves the promotion tag to an image digest for audit and reproducibility — operators work in tags, not raw digests.
 
 ---
 
@@ -163,7 +165,7 @@ Each stage pins ECS task definitions to an image digest, not a floating tag.
 |-------|-----------|
 | **CI** | GitHub Actions builds on merge to `main` and pushes images to **GHCR** (`ghcr.io/mentor-forge/*`) |
 | **Registry mirror** | **ECR** (Shared-Services) receives the same digest from GHCR |
-| **CD** | Tag/deploy actions promote an ECR image digest to a tenant or environment; ECS services update to the pinned digest |
+| **CD** | **Promote** workflows retag images in ECR (`from` → `to`); **deploy** workflows roll ECS for a tenant/environment using its configured promotion tag |
 
 Build dependencies (Python and npm packages) are resolved from **CodeArtifact** in Shared-Services during CI.
 
@@ -171,11 +173,11 @@ Build dependencies (Python and npm packages) are resolved from **CodeArtifact** 
 
 | Action | Description |
 |--------|-------------|
-| Deploy `:latest` to `dev` tenant | Pull current `:latest` images from GHCR into ECR; deploy to the `dev` tenant in `mentorhub-dev` |
-| Promote digest to `test` tenant | Tag ECR image; update ECS services for the `test` tenant |
-| Deploy production release to `conference` tenant | Copy current production image digests into ECR; stand up a `conference` tenant in `mentorhub-dev`; tear down after the event |
-| Deploy to staging | Promote approved digest to `mentorhub-staging` |
-| Deploy to production | Promote approved digest to `mentorhub-production` |
+| Promote `:latest` → `:test` | Tag current `:latest` images as `:test` in ECR (no rebuild) |
+| Deploy `dev` tenant | Roll out ECS services configured for tag `:latest` |
+| Promote `:production` → `:conference` | Tag prod-known-good images as `:conference` for demo |
+| Deploy `conference` tenant | Stand up conference tenant in `mentorhub-dev`; tear down after event |
+| Promote → `:staging` / `:production` | Guarded promotions; then deploy staging or production stack |
 
 CD is driven by **tag/deploy** GitHub Actions workflows — not by rebuilding images at deploy time.
 
