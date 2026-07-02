@@ -17,7 +17,7 @@ Deploy MentorHub-Dev foundation: account ID recorded, CloudTrail/budget, VPC, su
 
 ## Requirements
 
-- [ ] **R040.1** Record MentorHub-Dev AWS account ID in `parameters/dev.json` and aws-platform.yaml (mentorhub PR)
+- [x] **R040.1** Record MentorHub-Dev AWS account ID in `parameters/dev.json` and aws-platform.yaml — **`083141433373`** (2026-07-02)
 - [ ] **R040.2** Template `templates/dev/cloudtrail.yaml` + budget (~$50/month)
 - [ ] **R040.3** Template `templates/dev/network.yaml` — VPC `10.0.0.0/16`, 2 public + 2 private subnets, IGW, NAT
 - [ ] **R040.4** Security groups: `alb-sg`, `ecs-sg`, `documentdb-sg` (gateway → ECS → DB)
@@ -41,7 +41,7 @@ Dev VPC and governance stacks deployed; network outputs available for Phase 3B�
 
 ## Change control checklist
 
-- [ ] Dev account ID recorded in parameters and aws-platform.yaml.
+- [x] Dev account ID recorded in parameters and aws-platform.yaml.
 - [ ] Stacks deployed in order.
 - [ ] Network smoke test passed.
 - [ ] Scoped commit referencing R040.

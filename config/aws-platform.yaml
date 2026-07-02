@@ -4,29 +4,76 @@
 aws:
   primary_region: us-east-1
   recorded: 2026-06-04
-  updated: 2026-07-01
+  updated: 2026-07-02
+
+organization:
+  id: o-zokgnnpypo
+  management_account_id: "680206182977"
 
 accounts:
+  management:
+    account_id: "680206182977"
+    name: Mike Storey
+    email: flatballflyer@gmail.com
+    profile: mentorhub-management
+    status: active
+    note: Organization root — Identity Center, billing, governance only; no application workloads.
   shared_services:
     account_id: "560167829275"
+    name: Shared-Services
+    email: mentorhub@agile-learning.institute
     profile: mentorhub-shared
     status: created
     budget_usd_monthly: 100
   mentorhub_dev:
-    account_id: TBD
+    account_id: "083141433373"
+    name: mentorhub-dev
+    email: mentorhub-dev@agile-learning.institute
     profile: mentorhub-dev
     status: created
     budget_usd_monthly: 100
     cloudtrail:
       trail_name: mentorhub-dev-trail
       kms_alias: alias/mentorhub-dev-cloudtrail
+    network:
+      vpc_name: mentorhub-dev-vpc
+      vpc_cidr: 10.0.0.0/16
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+      subnets:
+        - name: mentorhub-dev-subnet-public1-us-east-1a
+          cidr: 10.0.0.0/20
+          type: public
+        - name: mentorhub-dev-subnet-private1-us-east-1a
+          cidr: 10.0.128.0/20
+          type: private
+        - name: mentorhub-dev-subnet-public2-us-east-1b
+          cidr: 10.0.16.0/20
+          type: public
+        - name: mentorhub-dev-subnet-private2-us-east-1b
+          cidr: 10.0.144.0/20
+          type: private
   mentorhub_staging:
     account_id: TBD
     status: not_created
     budget_usd_monthly: 100
+    network:
+      vpc_name: mentorhub-staging-vpc
+      vpc_cidr: TBD
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
   mentorhub_production:
     account_id: TBD
     status: not_created
+    budget_usd_monthly: 100
+    network:
+      vpc_name: mentorhub-production-vpc
+      vpc_cidr: TBD
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
 
 codeartifact:
   account_id: 560167829275
@@ -68,7 +115,7 @@ container_registry:
 
 identity_center:
   sso_region: us-east-2
-  sso_start_url: https://d-906780e571.awsapps.com/start
+  sso_start_url: https://d-9a67582559.awsapps.com/start
   sso_session_name: mentor-forge
   groups:
     - Organization-Admin
@@ -135,9 +182,11 @@ github_ci:
 sso_profiles:
   shared_services: mentorhub-shared
   dev_workload: mentorhub-dev
+  management: mentorhub-management
   default_roles:
     shared_services: Developer-Packages
     dev_workload: Developer
+    management: Organization-Admin
 
 observability:
   status: not_started

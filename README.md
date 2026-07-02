@@ -36,11 +36,11 @@ That boundary is intentional: **open source software**, **operator-specific impl
 ```text
 AWS Organization
 └── Root
-    ├── Management              — organization, Identity Center, billing
-    ├── Shared-Services         — shared platform services (no application workloads)
-    ├── mentorhub-dev           — multi-tenant development and short-lived environments
-    ├── mentorhub-staging       — production mirror; may be shut down between releases
-    └── mentorhub-production    — live single-tenant production
+    ├── Management (680206182977)     — organization, Identity Center, billing
+    ├── Shared-Services (560167829275) — shared platform services (no application workloads)
+    ├── mentorhub-dev (083141433373)  — multi-tenant development and short-lived environments
+    ├── mentorhub-staging             — production mirror; may be shut down between releases (not created)
+    └── mentorhub-production          — always-on live single-tenant production (not created)
 ```
 
 | Setting | Value |
@@ -53,8 +53,9 @@ AWS Organization
 
 | Account | Status |
 |---------|--------|
+| **Management** (`680206182977`) | Active. Organization root, Identity Center, billing. |
 | **Shared-Services** (`560167829275`) | Created. CodeArtifact operational. ECR and remaining shared stacks in progress. |
-| **mentorhub-dev** | Created. Workload infrastructure (VPC, DocumentDB, ECS, edge) not yet deployed. |
+| **mentorhub-dev** (`083141433373`) | Created. Workload infrastructure (VPC, DocumentDB, ECS, edge) not yet deployed. |
 | **mentorhub-staging** | Not created. |
 | **mentorhub-production** | Not created. |
 
@@ -113,16 +114,16 @@ CLI profile: `mentorhub-dev`
 
 Single-tenant account that mirrors production topology. May be scaled down or shut down between releases.
 
-| Service | AWS |
-|---------|-----|
-| Logging | CloudTrail |
-| Network | VPC (`mentorhub-staging-vpc`) |
-| Container runtime | ECS (`mentorhub-staging-ecs`) |
-| Database | DocumentDB (`mentorhub-staging-documentdb`) |
-| Identity | Cognito |
-| DNS | Route 53 |
-| Email | SES |
-| Object storage | S3 |
+| Service | AWS | Name / detail |
+|---------|-----|---------------|
+| Logging | CloudTrail | |
+| Network | VPC | `mentorhub-staging-vpc` — CIDR TBD |
+| Container runtime | ECS | `mentorhub-staging-ecs` |
+| Database | DocumentDB | `mentorhub-staging-documentdb` |
+| Identity | Cognito | `mentorhub-staging-cognito` |
+| DNS | Route 53 | `mentorhub-staging-route53` |
+| Email | SES | `mentorhub-staging-ses` |
+| Object storage | S3 | `mentorhub-staging-s3` |
 
 | Tenant | Image tag | Database |
 |--------|-----------|----------|
@@ -130,18 +131,18 @@ Single-tenant account that mirrors production topology. May be scaled down or sh
 
 ### mentorhub-production
 
-Single-tenant live production environment.
+Single-tenant **always-on** live production environment.
 
-| Service | AWS |
-|---------|-----|
-| Logging | CloudTrail |
-| Network | VPC (`mentorhub-production-vpc`) |
-| Container runtime | ECS (`mentorhub-production-ecs`) |
-| Database | DocumentDB (`mentorhub-production-documentdb`) |
-| Identity | Cognito |
-| DNS | Route 53 |
-| Email | SES |
-| Object storage | S3 |
+| Service | AWS | Name / detail |
+|---------|-----|---------------|
+| Logging | CloudTrail | |
+| Network | VPC | `mentorhub-production-vpc` — CIDR TBD |
+| Container runtime | ECS | `mentorhub-production-ecs` |
+| Database | DocumentDB | `mentorhub-production-documentdb` |
+| Identity | Cognito | `mentorhub-production-cognito` |
+| DNS | Route 53 | `mentorhub-production-route53` |
+| Email | SES | `mentorhub-production-ses` |
+| Object storage | S3 | `mentorhub-production-s3` |
 
 | Tenant | Image tag | Database |
 |--------|-----------|----------|
@@ -156,7 +157,7 @@ Single-tenant live production environment.
 | Local | Developer machine (Docker Compose) | Single stack | See [mentorhub Developer Edition](https://github.com/mentor-forge/mentorhub/tree/main/DeveloperEdition) |
 | Development / Test / Training / Conference | `mentorhub-dev` | Multi-tenant | Shared DocumentDB cluster; one database per tenant |
 | Staging | `mentorhub-staging` | Single tenant | Mirror of production; spin down when not in use |
-| Production | `mentorhub-production` | Single tenant | Live environment |
+| Production | `mentorhub-production` | Single tenant | Always-on live environment |
 
 ---
 

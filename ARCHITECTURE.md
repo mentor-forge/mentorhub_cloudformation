@@ -160,31 +160,36 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 | **VPC**                    | Workload accounts               | Isolated network for ECS, DocumentDB   | Private subnets for workloads; public subnets for NAT and load-balanced entry. `10.0.0.0/16` in dev.       |
 | **NAT Gateway**            | Workload VPC                    | Outbound internet from private subnets | ECS tasks in private subnets can reach external APIs (Stripe, etc.) without public IPs.                    |
 | **ALB (Application Load Balancer)** | Workload VPC public subnets | Single HTTPS entry point               | Path- and host-based listener rules route to ECS target groups (journey SPAs and APIs). TLS termination, health checks, WAF attachment in prod. |
-| **Route 53**               | Workload accounts               | DNS hostnames                          | Maps friendly names to the ALB (and to CloudFront if SPAs move to S3).                                     |
-| **ACM**                    | Workload accounts               | TLS certificates                       | Free managed certs on the ALB listener (and CloudFront if used).                                          |
+| **Route 53**               | Workload accounts               | DNS hostnames                          | Maps friendly names to the ALB.                                                                            |
+| **ACM**                    | Workload accounts               | TLS certificates                       | Free managed certs on the ALB HTTPS listener.                                                              |
 | **AWS WAF**                | Workload accounts (prod target) | Web application firewall               | Web ACL on the ALB in production — planned before go-live.                                                |
-
-
-**Decision — ALB, not API Gateway:** Early docs named **API Gateway** (familiar from IBM API Connect / gateway products). For MentorHub on **ECS**, **ALB is the better fit**: listener rules already handle multi-journey path routing (`/coordinator`, `/mentor`, etc.); target groups map cleanly to one SPA + one API per journey; **ACM** and **WAF** attach directly to the ALB; no VPC Link or separate API proxy layer. **JWT validation stays in the Flask APIs** (`api_utils`) after Cognito issues tokens — we do not need API Gateway authorizers or usage plans at the edge. API Gateway remains a valid pattern for serverless or edge authorizers; it is not the target here.
 
 **Key decision:** Internet-facing **ALB** in public subnets; **ECS tasks stay in private subnets** registered as target group targets. Operators get one hostname, path-based routing, and standard ECS observability (ALB access logs → OpenSearch).
 
 #### ACM, WAF, and ALB — what they are and how we use them
 
-**ACM (AWS Certificate Manager)** — AWS issues and auto-renews **TLS certificates** (the “padlock” for HTTPS). You prove domain ownership (usually via DNS in Route 53), and ACM handles renewal before expiry. **How we use it:** Attach an ACM certificate to the **ALB HTTPS listener** (and to **CloudFront** if SPAs move to S3 + CloudFront) so users reach `https://<app-hostname>` with a valid cert.
+**ACM (AWS Certificate Manager)** — AWS issues and auto-renews **TLS certificates** (the “padlock” for HTTPS). You prove domain ownership (usually via DNS in Route 53), and ACM handles renewal before expiry. **How we use it:** Attach an ACM certificate to the **ALB HTTPS listener** so users reach `https://<app-hostname>` with a valid cert.
 
-**WAF (AWS Web Application Firewall)** — A **layer-7 firewall** that inspects HTTP requests before they reach your app. Managed rule groups block SQL injection, cross-site scripting, known bad bots, and oversized payloads; you can add rate limits and geo rules. **How we use it:** Associate a WAF **web ACL** with the **production ALB** (or CloudFront if SPAs are served there). Dev and test can omit WAF to save cost; production should enable it before go-live (finding F8). WAF complements Cognito and API JWT checks — it filters malicious traffic, not “is this user logged in?”
+**WAF (AWS Web Application Firewall)** — A **layer-7 firewall** that inspects HTTP requests before they reach your app. Managed rule groups block SQL injection, cross-site scripting, known bad bots, and oversized payloads; you can add rate limits and geo rules. **How we use it:** Associate a WAF **web ACL** with the **production ALB**. Dev and test can omit WAF to save cost; production should enable it before go-live (finding F8). WAF complements Cognito and API JWT checks — it filters malicious traffic, not “is this user logged in?”
 
-**ALB (Application Load Balancer)** — A **regional load balancer** in the VPC that distributes HTTP/HTTPS to **target groups** (ECS services). It health-checks tasks, supports path/host/header routing, and integrates with ECS service connect patterns. **How we use it:** One **internet-facing ALB** per workload environment; listener rules send `/coordinator/*` (and similar) to the coordinator SPA and API target groups, `/api/*` paths to API services as defined in templates (see F12 for hostname vs path tenancy). This is the standard AWS pattern for containerized web apps and matches how nginx proxies in Developer Edition Compose.
+**ALB (Application Load Balancer)** — A **regional load balancer** in the VPC that distributes HTTP/HTTPS to **target groups** (ECS services). It health-checks tasks, supports path/host/header routing, and integrates with ECS service connect patterns. **How we use it:** One **internet-facing ALB** per workload environment; listener rules send journey paths to SPA and API target groups (see F12 for hostname vs path tenancy). This matches how nginx proxies in Developer Edition Compose.
 
-**Open design choice (not yet resolved):** SPA static assets — serve from **ECS (nginx)** containers vs **S3 + CloudFront**. ECS works for parity with local dev; S3 + CloudFront is usually cheaper and more scalable for static files. Decide before R070/R090 implementation.
+#### SPA hosting — decided (ECS nginx containers)
+
+**Key Decision:** Journey SPAs deploy as **ECS tasks running nginx** — the same **container image** model as APIs. The **deployment asset** is the **Docker image in ECR** (built by CI: `npm run build` → `dist/` copied into the image). Promotion and deploy use the same tag/digest workflow as APIs.
+
+**What is inside the SPA image:** Static files (`index.html`, JS/CSS bundles, assets) plus **nginx** configured to (1) serve the SPA with Vue history-mode `try_files`, and (2) **proxy `/api/*`** to the paired API service (`API_HOST` / `API_PORT` at task startup). That proxy is why a plain “static bucket” is not a drop-in replacement without redesigning routing.
+
+**This achieves:**
+- **One pipeline** — every journey service is an ECR image; same promote/deploy mental model as Compose.
+- **`/api/*` proxy** — already implemented in `nginx.conf.template`; ALB can route journey paths without splitting static vs API hosting models.
+- **Team scale** — four journey SPAs at apprentice volume; Fargate cost is acceptable until traffic or cost review says otherwise.
+
+**Revisit trigger:** If production traffic or monthly ECS cost for static serving justifies moving **SPA build output** to S3 + CloudFront and routing `/api/*` on the ALB only (See F11 follow-up). APIs stay on ECS.
 
 ---
 
-
-
 ### Compute and data
-
 
 | Service            | Where             | Used for                                     | Why                                                                                                                                 |
 | ------------------ | ----------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -194,7 +199,7 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 | **SES**            | Workload accounts | Transactional email                          | Password reset, notifications. Sandbox in dev; production access requires AWS approval.                                             |
 
 
-**Good decision:** DocumentDB for a MongoDB-shaped product on AWS. Running self-managed MongoDB on EC2 would burden a small SRE team. Atlas is a valid alternative but adds a second vendor and network path; DocumentDB keeps data in-VPC with IAM and CloudTrail integration.
+**Key decision:** DocumentDB for a MongoDB-shaped product on AWS. Running self-managed MongoDB on EC2 would burden a small SRE team. Atlas is a valid alternative but adds a second vendor and network path; DocumentDB keeps data in-VPC with IAM and CloudTrail integration.
 
 **Dev multi-tenancy model:** One DocumentDB **cluster**, separate **database** per tenant (`mentorhub-dev`, `mentorhub-test`, etc.). Collections are never shared across tenants.
 
@@ -212,8 +217,6 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 **Not acceptable for production:** Production must be single-tenant with its own cluster, backups, and monitoring — which the target architecture already specifies.
 
 ---
-
-
 
 ### Observability and governance
 
@@ -248,23 +251,19 @@ AWS service metrics ──► CloudWatch Metrics          ← optional Grafana d
 
 
 
-#### Log analytics — Amazon OpenSearch Service (decided)
-
-**Decision:** Use **Amazon OpenSearch Service** (managed) instead of a self-managed ELK stack on ECS. OpenSearch is the AWS-managed evolution of the Elasticsearch API; **OpenSearch Dashboards** replaces Kibana for log exploration.
+#### Log analytics — Amazon OpenSearch Service
 
 
 | Component                                    | Used for                           | Why                                                                                                                       |
 | -------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Amazon OpenSearch Service**                | Log storage and full-text search   | Managed cluster (patching, scaling, snapshots); Elasticsearch-compatible query DSL; no Logstash/Elasticsearch ops on ECS. |
-| **OpenSearch Dashboards**                    | Log exploration and visualisations | Built-in UI for OpenSearch; same role Kibana played in ELK — search, filters, dashboards.                                 |
+| **Amazon OpenSearch Service**                | Log storage and full-text search   | Managed cluster (patching, scaling, snapshots); Elasticsearch-compatible query DSL |
+| **OpenSearch Dashboards**                    | Log exploration and visualizations | Built-in UI for OpenSearch; same role Kibana played in ELK — search, filters, dashboards.                                 |
 | **Fluent Bit** (or **OpenSearch Ingestion**) | Log shipping and enrichment        | Forward from CloudWatch Logs or ECS; add `tenant`, `environment`, `service`, `journey` fields for multi-tenant dev.       |
 
 
-**Why not self-managed ELK:** A small SRE team should not operate Elasticsearch, Logstash, and Kibana on ECS alongside application workloads. Managed OpenSearch reduces on-call burden, integrates with VPC and IAM, and stays on one AWS bill. The team still learns portable log-query concepts (index patterns, field filters, aggregations) without running the data plane.
-
 **Placement:** Shared-Services account — one OpenSearch domain serves dev, staging, and production log indices (separate index prefixes or ISM policies per environment/tenant). Workload accounts forward via CloudWatch Logs subscription filters or Fluent Bit.
 
-**Intern takeaway:** CloudTrail tells you *who deleted a security group*. OpenSearch Dashboards tells you *why the coordinator API returned 500 at 2am*.
+**Key Takeaway:** CloudTrail tells you *who deleted a security group*. OpenSearch Dashboards tells you *why the coordinator API returned 500 at 2am*.
 
 #### Metrics and dashboards — Prometheus + Grafana (target)
 
@@ -299,14 +298,13 @@ Prometheus in Shared-Services (or a cluster-local scraper forwarding to it) disc
 
 **Placement:** Shared-Services alongside OpenSearch, or co-located on the same ECS cluster dedicated to platform tooling.
 
-#### Good decisions
+#### Key decisions
 
 - **Separate concerns:** CloudTrail (audit) ≠ OpenSearch (application logs) ≠ Prometheus (metrics). Mixing them creates noisy dashboards and wrong retention policies.
-- **Centralise observability tooling** in Shared-Services so dev tenants and future staging/prod feed one OpenSearch domain and one Grafana — operators do not context-switch per account.
+- **Centralize observability tooling** in Shared-Services so dev tenants and future staging/prod feed one OpenSearch domain and one Grafana — operators do not context-switch per account.
 - **Standard** `/metrics` **on every API:** Application metrics are already implemented via `api_utils`; platform work is wiring Prometheus scrape targets and Grafana dashboards, not adding per-service exporters.
 - **Managed OpenSearch + self-managed Prometheus/Grafana (initially):** Logs benefit most from a managed service at our scale; metrics tooling may later move to Amazon Managed Prometheus / Amazon Managed Grafana if ops burden grows.
 - **OpenSearch over self-managed ELK:** Same search UX family without operating Elasticsearch and Logstash on ECS.
-
 
 
 #### Findings for observability (Junior Architect)
@@ -338,19 +336,15 @@ Prometheus in Shared-Services (or a cluster-local scraper forwarding to it) disc
 | Production                         | mentorhub-production | Single tenant        | Live customers.                                |
 
 
-**Good decision:** Staging as a **prod mirror that can sleep**. Staging that runs 24/7 often costs nearly as much as prod while providing little extra value for a release cadence measured in weeks, not hours.
+**Key decision:** Staging as a **prod mirror that can sleep**. Staging that runs 24/7 often costs nearly as much as prod while providing little extra value for a release cadence measured in weeks, not hours.
 
-**Good decision:** Conference as a **short-lived tenant in dev**, not a fifth account. Demos need prod-like data and images without prod risk or prod cost.
+**Key decision:** Conference as a **short-lived tenant in dev**, not a fifth account. Demos need prod-like data and images without prod risk or prod cost.
 
 ---
 
-
-
 ## CI/CD and change management
 
-
-
-### Tags vs digests — what interns should know
+### Tags vs digests — good to know
 
 A container **image** is the built artifact (layers + manifest). Registries refer to it in two ways:
 
@@ -372,7 +366,7 @@ Tag :test     ──points-to──►  digest sha256:def…  (tomorrow, after a
 Digest sha256:abc…  always means the same image, forever.
 ```
 
-**Intern takeaway:** Tags are how we **name promotion channels** (`test`, `staging`, `conference`). Digests are how we **prove** what actually ran. Both are used; they solve different problems.
+**Takeaway:** Tags are how we **name promotion channels** (`test`, `staging`, `conference`). Digests are how we **prove** what actually ran. Both are used; they solve different problems.
 
 ---
 
@@ -449,27 +443,12 @@ Conference deploy: promote `production` → `conference`, then **deploy** the `c
 
 ---
 
-
-
 ### Design decision — tags for operators, digests for the running system
 
 The README and earlier drafts emphasized **digest pinning** in ECS. That is **not** a different workflow from tag-based promote/deploy. It is an implementation detail at **deploy** time:
 
-1. **Promote** uses tags (your model) — operators think in `:test`, `:staging`, `:conference`.
+1. **Promote** uses tags — operators think in `:test`, `:staging`, `:conference`.
 2. **Deploy** reads the tenant’s configured tag, **resolves tag → digest** at deploy time, and registers the task definition with that digest (or records digest in deploy metadata).
-
-Why record digest if we use tags?
-
-
-| Reason                | Explanation                                                                                                                                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reproducibility**   | “What is running in prod?” is answered by digest, not by “whatever `:production` means today.”                                                            |
-| **Race safety**       | Between “start deploy” and “ECS pulls image,” someone could push a new image to `:production`. Resolving once at deploy start avoids half-updated fleets. |
-| **Audit**             | Change management and incident response need “exactly this build,” not “the tag we think we meant.”                                                       |
-| **ECS best practice** | Task definitions should not rely on floating tags for production rollouts.                                                                                |
-
-
-So: **your compose-like tag configuration is the target UX.** Digest appears in the **deploy implementation** and in **audit trails**, not as something operators must type.
 
 ```text
 Operator view:     promote production → conference ; deploy tenant conference
@@ -481,13 +460,12 @@ If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1
 ---
 
 
-
 ### CI/CD flow (build → registry → promote → deploy)
 
 ```text
-┌─────────────┐     merge main      ┌──────────────────┐
-│ GitHub repo │ ──────────────────► │ GitHub Actions   │
-└─────────────┘                     └────────┬─────────┘
+┌─────────────┐     merge main    ┌──────────────────┐
+│ GitHub repo │ ────────────────► │ GitHub Actions   │
+└─────────────┘                   └────────┬─────────┘
                                            │
                     ┌──────────────────────┼──────────────────────┐
                     ▼                      ▼                      ▼
@@ -526,7 +504,7 @@ If the team later adopts **immutable tags** in ECR (e.g. `:production-20260702.1
 | `deploy --tenant conference`                | Deploy  | Stand up conference tenant in `mentorhub-dev`; tear down after event                     |
 
 
-GitHub Actions drive **promote** and **deploy** workflows (workflow_dispatch, environment approvals, or tag-push triggers). Implementation tasks: R030 (ECR), R100 (CD wiring).
+CI (GitHub Actions) builds journey images and pushes to ECR on merge to main. Promote and deploy are runbooks in mentorhub_runbook_api — tested scripts packaged as Stage0 runbooks, invoked via Bearer token and Required Claims RBAC today. Runbooks call AWS APIs for ECR retag and ECS tenant rollout using platform config and tenant manifests from this repo. Target: the same runbooks exposed as an MCP server with out-of-band MFA approval by the action owner before execution. Implementation: R030 (ECR), R100 (CI → ECR; optional dev auto-deploy).
 
 **CI configuration:** Organization variables (`AWS_REGION`, CodeArtifact names), org secrets (`AWS_ROLE_ARN_READ`, `AWS_ROLE_ARN_PUBLISH`), workflow patterns per repo type, and Dockerfile auth patterns are documented in [docs/github-ci.md](./docs/github-ci.md).
 
@@ -536,20 +514,7 @@ GitHub Actions drive **promote** and **deploy** workflows (workflow_dispatch, en
 
 ## Findings for the Junior Architect
 
-Items that are **incorrect, inconsistent, or risky** in the current design package. Fix these before treating `architecture.yaml` as implementation-ready.
-
-### Must fix (correctness)
-
-
-| #   | Finding                                                                                                                                           | Severity | Recommendation                                                                                                                          |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| F1  | Subnet names reference `us-east-2a` / `us-east-2b` but primary region is `us-east-1`                                                              | High     | Rename subnets to `us-east-1a` / `us-east-1b` (or whichever AZs you actually use). AZ labels in names must match the deployment region. |
-| F2  | Staging and production sections **copy-paste dev resource names** (`mentorhub-dev-cognito`, `mentorhub-dev-route53`, `mentorhub-dev-sns` for SES) | High     | Each account gets its own resource names (`mentorhub-staging-cognito`, etc.). SES was labeled SNS — wrong service.                      |
-| F3  | `mentorhub-dev` account ID is **TBD** in `config/aws-platform.yaml` and `parameters/dev.json`                                                     | High     | Record the real account ID before any dev VPC/ECS deploy. Cross-account ECR pull and IAM trust policies depend on it.                   |
-| F4  | Production `architecture.yaml` description says staging can "shut down between releases" — **copy-paste error** on production environment         | Medium   | Production is always-on. Fix the description.                                                                                           |
-
-
-
+Items that are **incorrect, inconsistent, or risky** in the current design package. Platform truth lives in this repo ([`config/aws-platform.yaml`](./config/aws-platform.yaml), [README.md](./README.md)); product journeys remain in [`mentorhub/Specifications/architecture.yaml`](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml).
 
 ### Should fix (architecture gaps)
 
@@ -559,10 +524,10 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | F5  | **No cross-account ECR pull design** documented                                  | High                  | ECS in workload accounts must pull from ECR in Shared-Services (`560167829275`). Document repository policies and/or pull-through cache; add to templates before R030/R060. |
 | F6  | **Identity Center in** `us-east-2`**, workloads in** `us-east-1`                 | Low (valid)           | Not wrong — Identity Center home region is chosen at enablement and is independent of workload region. Document this so interns do not "fix" it by collapsing regions.      |
 | F7  | **$100/month budgets** on all accounts including production                      | Medium                | Fine as a dev-team alarm; not a capacity plan. Production needs a realistic budget and right-sizing after load testing.                                                     |
-| F8  | **No WAF** on production edge                                                    | High (before go-live) | Add AWS WAF web ACL on the production **ALB** (or CloudFront if SPAs move to S3). Dev can omit.                                                                               |
+| F8  | **No WAF** on production edge                                                    | High (before go-live) | Add AWS WAF web ACL on the production **ALB**. Dev can omit.                                                                                                                  |
 | F9  | **No backup / restore runbook** for DocumentDB                                   | High (before go-live) | Define retention, snapshot schedule, and restore test. DocumentDB supports automated backups — enable in template.                                                          |
 | F10 | **No VPC endpoints** for ECR, S3, Secrets Manager                                | Medium                | NAT Gateway charges per GB; interface endpoints reduce NAT traffic and improve security posture. Add when cost/ops reviewed.                                                |
-| F11 | **SPA hosting undecided** (ECS nginx vs S3 + CloudFront)                         | Medium                | Decide in R070. Default recommendation: **S3 + CloudFront** for SPAs, ECS for APIs only.                                                                                    |
+| F11 | **SPA hosting on ECS nginx** (decided)                                           | Low (monitor)         | Revisit **S3 + CloudFront** when static hosting cost or traffic warrants; deploy asset would become `dist/` files in S3, not a cache over nginx. APIs stay on ECS.          |
 | F12 | **Tenant routing undecided** (hostname per tenant vs path prefix on shared host) | Medium                | ALB supports both (host-based vs path-based listener rules). Path-based (`/coordinator/*`) is simpler with one cert; hostname-per-tenant mirrors prod more closely. Pick one for dev and document in templates. |
 | F13 | **GitHub OIDC roles still manual**; placeholder CloudFormation template          | Medium                | Complete R031 — drift between console and IaC is already a risk for CodeArtifact roles.                                                                                     |
 | F14 | **CIDR** `TBD` for staging and production VPCs                                   | Medium                | Plan non-overlapping CIDRs if future VPC peering or TGW is possible (e.g. `10.1.0.0/16`, `10.2.0.0/16`).                                                                    |
@@ -578,7 +543,7 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | Multi-tenant dev on shared DocumentDB                     | Production pattern would be account-per-tenant or cluster-per-tenant | Dev/test only; saves cost; team understands isolation is logical not physical                              |
 | No public container registry                              | Many OSS projects publish Docker Hub / GHCR images                   | Intentional — third parties fork and build; see [Open source](#open-source-and-third-party-implementation) |
 | Conference tenant runs **prod images** in **dev account** | Blurs environment boundaries                                         | Short-lived demos with no prod data; tear down after event                                                 |
-| ECS for everything including SPAs                         | SPAs are static files                                                | Acceptable for pilot; revisit S3 + CloudFront for cost and caching (F11)                                   |
+| ECS nginx for journey SPAs                                | S3 + CloudFront is cheaper at scale for static files                 | **Decided** for pilot — one ECR/deploy model; nginx proxies `/api/*`; revisit F11 when cost/traffic grows |
 | DocumentDB instead of MongoDB Atlas                       | Second vendor can be simpler for small teams                         | In-VPC, IAM-integrated, one AWS bill — reasonable for this org size                                        |
 | Self-managed Prometheus + Grafana on ECS                  | AWS-native path is AMP + AMG                                         | Acceptable initially; revisit when on-call load grows                                                      |
 
@@ -596,8 +561,8 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 | CodeArtifact domain + repos                | Operational; CloudFormation import in progress (R020) |
 | GitHub OIDC (CodeArtifact)                 | Operational (manual); codify in CFN (R031)            |
 | ECR (CI push target)                       | In progress (R030)                                    |
-| mentorhub-dev account                      | Created; **no workload stacks deployed**              |
-| VPC, DocumentDB, ECS, ALB, Cognito | Templates scaffolded; not deployed (`templates/dev/api-gateway.yaml` placeholder to be replaced with ALB stack in R070) |
+| mentorhub-dev account (`083141433373`)     | Created; **no workload stacks deployed**              |
+| VPC, DocumentDB, ECS, ALB, Cognito         | Templates scaffolded; not deployed (`templates/dev/alb.yaml` — R070) |
 | mentorhub-staging / production accounts    | Not created                                           |
 | Amazon OpenSearch Service + Dashboards     | Not started — target in Shared-Services               |
 | Prometheus + Grafana                       | Not started — target in Shared-Services               |
@@ -622,12 +587,10 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 
 **For the Junior Architect — before staging/prod templates:**
 
-1. Fix region/AZ naming and copy-paste errors in `architecture.yaml`.
-2. Document cross-account ECR pull and implement in IaC.
-3. Resolve SPA hosting and tenant routing (F11, F12).
-4. Add production hardening checklist: WAF, DocumentDB backups, OpenSearch/Grafana access control, realistic budgets.
-5. Record all account IDs in `config/aws-platform.yaml`.
-6. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
+1. Document cross-account ECR pull and implement in IaC (F5).
+2. Resolve tenant routing on the ALB (F12); SPA hosting is ECS nginx containers (F11 — decided).
+3. Add production hardening checklist: WAF, DocumentDB backups, OpenSearch/Grafana access control, realistic budgets.
+4. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
 
 ---
 

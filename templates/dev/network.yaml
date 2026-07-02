@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: PLACEHOLDER — VPC, subnets, NAT, security groups. Implement in R040.
+# Subnet names and CIDRs: config/aws-platform.yaml → accounts.mentorhub_dev.network (us-east-1a / us-east-1b)
 
 Resources:
   Placeholder:
