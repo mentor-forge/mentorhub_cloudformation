@@ -348,4 +348,5 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 | **ARCHITECTURE.md** (this file) | Design rationale and review — *why* and *what to fix* |
 | [config/aws-platform.yaml](./config/aws-platform.yaml) | As-built configuration values |
 | [docs/InfrastructureDiagram.svg](./docs/InfrastructureDiagram.svg) | Platform diagram (WIP) |
+| [docs/ArchitectureDiagram.dev.svg](./docs/ArchitectureDiagram.dev.svg) | Cloud DEV runtime diagram (WIP) |
 | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) | Product journeys and repositories |

@@ -191,6 +191,9 @@ mentorhub_cloudformation/
 │   └── aws-platform.yaml        # Account IDs, CodeArtifact, SSO, observability targets
 ├── docs/                        # Diagrams and archived planning documents
 │   ├── InfrastructureDiagram.svg
+│   ├── ArchitectureDiagram.dev.svg
+│   ├── ArchitectureDiagram.dev.drawio
+│   ├── guides/                  # Diagram completion guides
 │   └── archive/                 # Superseded planning docs — remove 2026-08-01
 ├── import/                      # CloudFormation resource-import definitions
 │   └── codeartifact-resources-to-import.json
@@ -222,6 +225,7 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 | Platform overview (accounts, tenancy, CI/CD) | [`README.md`](./README.md) |
 | AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
 | Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
+| Cloud DEV runtime diagram | [`docs/ArchitectureDiagram.dev.svg`](./docs/ArchitectureDiagram.dev.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
 | Archived planning docs | [`docs/archive/`](./docs/archive/) — **remove 8/1/26** |
 

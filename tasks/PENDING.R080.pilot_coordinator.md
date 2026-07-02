@@ -12,7 +12,7 @@ Deploy coordinator API, SPA, and optional welcome service to ECS — first end-t
 
 - [README.md](../README.md) — platform overview
 - [mentorhub/DeveloperEdition/docker-compose.yaml](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/docker-compose.yaml) — local ports: API `8389`, SPA `8390`, welcome `8080`
-- [mentorhub/Specifications/ArchitectureDiagram.dev.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.svg)
+- [ArchitectureDiagram.dev.svg](../docs/ArchitectureDiagram.dev.svg)
 
 ## Requirements
 

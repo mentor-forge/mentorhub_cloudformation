@@ -10,8 +10,8 @@ Deploy customer, mentor, and mentee journeys plus supporting ops services in Dev
 
 ## Context / Input files
 
-- [mentorhub/Specifications/ArchitectureDiagram.dev.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.svg)
-- [mentorhub/Specifications/ArchitectureDiagram.dev.guide.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.guide.md)
+- [ArchitectureDiagram.dev.svg](../docs/ArchitectureDiagram.dev.svg)
+- [ArchitectureDiagram.dev.guide.md](../docs/guides/ArchitectureDiagram.dev.guide.md)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ### Journeys
