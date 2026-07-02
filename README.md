@@ -185,24 +185,28 @@ CD is driven by **tag/deploy** GitHub Actions workflows — not by rebuilding im
 
 ```text
 mentorhub_cloudformation/
-├── README.md
-├── config/
-│   └── aws-platform.yaml        # Canonical platform state (accounts, CodeArtifact, SSO)
-├── docs/
+├── README.md                    # Platform overview (accounts, tenancy, CI/CD)
+├── ARCHITECTURE.md              # SA peer review — service rationale and design findings
+├── config/                      # Canonical platform configuration (as-built state)
+│   └── aws-platform.yaml        # Account IDs, CodeArtifact, SSO, observability targets
+├── docs/                        # Diagrams and archived planning documents
 │   ├── InfrastructureDiagram.svg
-│   └── archive/                 # Superseded planning documents
-├── parameters/
+│   └── archive/                 # Superseded planning docs — remove 2026-08-01
+├── import/                      # CloudFormation resource-import definitions
+│   └── codeartifact-resources-to-import.json
+├── parameters/                  # Stack parameter files per account/environment
 │   ├── shared-services.json
 │   ├── dev.json
 │   ├── staging.json
 │   └── production.json
-├── scripts/
+├── scripts/                     # Deploy and import helper scripts
 │   ├── deploy-stack.sh
 │   └── import-codeartifact-stack.sh
-├── templates/
-│   ├── shared-services/
-│   └── dev/
-└── .github/workflows/
+├── tasks/                       # SRE implementation tasks (R010–R130)
+├── templates/                   # CloudFormation templates
+│   ├── shared-services/         # Shared-Services account stacks (CodeArtifact, ECR, OIDC)
+│   └── dev/                     # mentorhub-dev workload stacks (VPC, ECS, DocumentDB, edge)
+└── .github/workflows/           # CI (template lint on pull request)
     └── cfn-lint.yml
 ```
 
@@ -219,6 +223,6 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 | AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
 | Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
-| Archived planning docs | [`docs/archive/`](./docs/archive/) |
+| Archived planning docs | [`docs/archive/`](./docs/archive/) — **remove 8/1/26** |
 
 Rationale for service choices and operational runbooks: see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
