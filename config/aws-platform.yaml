@@ -3,8 +3,10 @@
 
 aws:
   primary_region: us-east-1
+  identity_center_region: us-east-2
   recorded: 2026-06-04
   updated: 2026-07-02
+  regions_note: SSO authenticates in us-east-2; all workload and platform service APIs use us-east-1
 
 organization:
   id: o-zokgnnpypo
@@ -54,6 +56,11 @@ accounts:
         - name: mentorhub-dev-subnet-private2-us-east-1b
           cidr: 10.0.144.0/20
           type: private
+      vpc_endpoints:
+        - com.amazonaws.us-east-1.ecr.api
+        - com.amazonaws.us-east-1.ecr.dkr
+        - com.amazonaws.us-east-1.s3
+        - com.amazonaws.us-east-1.secretsmanager
   mentorhub_staging:
     account_id: TBD
     status: not_created
@@ -109,9 +116,74 @@ container_registry:
     org: mentor-forge
     url: ghcr.io/mentor-forge
     status: operational
+    note: Interim for local dev and dual-push until R100 ECR-only cutover
   ecr:
-    account: shared_services
     status: in_progress
+    region: us-east-1
+    authoritative_account: shared_services
+    authoritative_account_id: "560167829275"
+    registry_host: 560167829275.dkr.ecr.us-east-1.amazonaws.com
+    push_principals:
+      - github_oidc_role: GitHubActionsECRPush
+        account: shared_services
+    pull_model:
+      decision: shared_services_authoritative_with_workload_pull_through_cache
+      documentation: docs/ecr-cross-account.md
+      upstream:
+        account_id: "560167829275"
+        registry_host: 560167829275.dkr.ecr.us-east-1.amazonaws.com
+      workload_accounts:
+        mentorhub_dev:
+          account_id: "083141433373"
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+            template: templates/dev/ecr-pull-through.yaml
+            note: Lazy-sync from Shared-Services; ECS task defs use local registry URI
+          direct_cross_account_pull:
+            enabled: true
+            note: Pilot fallback — task def may reference upstream URI until pull-through deployed
+          ecs_task_execution_role: mentorhub-dev-ecs-task-execution
+        mentorhub_staging:
+          account_id: TBD
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+        mentorhub_production:
+          account_id: TBD
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+    repository_policy:
+      allowed_pull_actions:
+        - ecr:BatchCheckLayerAvailability
+        - ecr:GetDownloadUrlForLayer
+        - ecr:BatchGetImage
+        - ecr:DescribeImages
+      workload_execution_roles:
+        - arn:aws:iam::083141433373:role/mentorhub-dev-ecs-task-execution
+    repositories:
+      pilot:
+        - mentorhub-welcome
+        - mentorhub-coordinator-api
+        - mentorhub-coordinator-spa
+      journey_pattern: mentorhub-{journey}-{api|spa}
+    cloudformation_stacks:
+      shared_services: templates/shared-services/ecr.yaml
+      pull_through_dev: templates/dev/ecr-pull-through.yaml
+
+production_hardening:
+  go_live_tasks: R130
+  waf:
+    required: true
+    attach_to: production_alb
+    minimum_rules:
+      - AWSManagedRulesCommonRuleSet
+      - AWSManagedRulesKnownBadInputsRuleSet
+  documentdb:
+    automated_backups_required: true
+    restore_test_required: true
+    note: Retention tuned when traffic and RPO are known; backups and restore path required before go-live
 
 identity_center:
   sso_region: us-east-2

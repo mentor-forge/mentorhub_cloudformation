@@ -30,6 +30,7 @@ Provision ECR repositories in Shared-Services and connect them to the existing G
 - [ ] **R030.4** Template `templates/shared-services/ecr.yaml` — replace placeholder
 - [ ] **R030.5** ECR repos (pilot): `mentorhub-welcome`, `mentorhub-coordinator-api`, `mentorhub-coordinator-spa`
 - [ ] **R030.6** ECR lifecycle policy (retain last N images per repo)
+- [ ] **R030.6a** Repository policies on pilot repos — allow workload account ECS execution roles to pull ([docs/ecr-cross-account.md](../docs/ecr-cross-account.md))
 
 ### GHCR connection (dual push)
 

@@ -100,6 +100,8 @@ Separating **OSS code** from **supported implementation** keeps mentor-forge tea
 
 **Multi-account** limits blast radius (a misconfigured dev experiment cannot delete the package registry), simplifies IAM (developers do not need prod power), and makes cost attribution possible per account.
 
+**Account budgets** (`budget_usd_monthly` in `config/aws-platform.yaml`) are **early cost alarms**, not capacity plans. Right-sizing follows traffic, errors, and spend — not a fixed monthly ceiling in documentation.
+
 **Shared-Services is not an app account.** Nothing that serves HTTP to end users runs there. If you see an ECS service proposed for Shared-Services, push back.
 
 ---
@@ -123,6 +125,15 @@ Separating **OSS code** from **supported implementation** keeps mentor-forge tea
 
 **Key Decision:** OIDC for automation and Identity Center for humans. This is the modern baseline; IAM users with access keys in GitHub secrets is an anti-pattern we avoided.
 
+#### Regions — Identity Center vs workloads
+
+| Region | Used for | Examples |
+|--------|----------|----------|
+| **`us-east-2`** | IAM Identity Center (SSO) home region only | `aws sso login`, Access Portal sign-in, `[sso-session mentor-forge]` in `~/.aws/config` |
+| **`us-east-1`** | All workload and shared platform services | CodeArtifact, ECR, ECS, DocumentDB, ALB, VPC, CloudFormation stacks |
+
+This split is **intentional and permanent**. Identity Center’s home region is chosen once at enablement; moving it is not a routine fix. Application resources belong in **`us-east-1`** regardless of where SSO authenticates. After login, developers and automation call AWS APIs in **`us-east-1`** (CLI profile `region` or explicit `--region us-east-1`).
+
 ---
 
 
@@ -133,7 +144,7 @@ Separating **OSS code** from **supported implementation** keeps mentor-forge tea
 | Service                  | Where           | Used for                                        | Why                                                                                                                                                  |
 | ------------------------ | --------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **CodeArtifact**         | Shared-Services | Private PyPI and npm (`api-utils`, `spa_utils`) | Shared libraries are versioned packages, creating reproducible CI, faster builds, audit trail. Access is Mentor Forge–scoped (invited contributors). |
-| **ECR**                  | Shared-Services | Authoritative container registry for ECS        | CI pushes images on merge to `main`. ECS tasks pull in-region.                                                                                       |
+| **ECR**                  | Shared-Services | Authoritative container registry for ECS        | CI pushes images on merge to `main`. Workload ECS pulls cross-account — see [Cross-account ECR](./docs/ecr-cross-account.md). |
 | **GitHub Actions**       | GitHub          | CI build and push                               | Build once on merge to `main`; OIDC to CodeArtifact and ECR. Org variables and role secrets in [docs/github-ci.md](./docs/github-ci.md).             |
 | **Tag/deploy workflows** | GitHub + AWS    | CD promotion and rollout                        | **Promote** moves tags in ECR; **deploy** rolls ECS using tenant tag config.                                                                         |
 
@@ -147,6 +158,21 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 **Core Rule:** Immutable images. CI builds once; promotion moves the **same image** through environments — we do not rebuild at deploy time.
 
 **Core Rule:** ECR as the single registry for Mentor Forge runtime. Keeps images and pull policy inside AWS; aligns with the open-source boundary that external operators fork and publish their own images.
+
+#### Cross-account pull (Shared-Services → workload ECS)
+
+**Decision:** **Authoritative ECR in Shared-Services** (`560167829275`); **ECS in workload accounts** (`mentorhub-dev` `083141433373`, future staging/production). This is the correct split — platform owns images, applications own runtime.
+
+| Layer | Where | What |
+|-------|-------|------|
+| **Push** | Shared-Services ECR | CI (GitHub OIDC) and promote retag — only account that **writes** images |
+| **Repository policy** | Shared-Services | Allows workload `ecs-task-execution` roles (and pull-through) to `BatchGetImage` |
+| **Task execution role** | Workload account | `ecr:GetAuthorizationToken` + pull on upstream or cached repos |
+| **Pull-through cache** | Workload account | Rule syncs from Shared-Services into local ECR namespace on first pull — **target** for deployed envs |
+
+Pilot may use **direct** cross-account URIs in task definitions (`560167829275.dkr.ecr...`) before pull-through stacks land; full journey rollout should use **local** URIs via pull-through (`083141433373.dkr.ecr.../mentorhub/...`).
+
+Full IAM actions, URI examples, and R030/R060 checklist: [`docs/ecr-cross-account.md`](./docs/ecr-cross-account.md). Canonical values: [`config/aws-platform.yaml`](./config/aws-platform.yaml) → `container_registry.ecr`.
 
 ---
 
@@ -162,7 +188,7 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 | **ALB (Application Load Balancer)** | Workload VPC public subnets | Single HTTPS entry point               | Path- and host-based listener rules route to ECS target groups (journey SPAs and APIs). TLS termination, health checks, WAF attachment in prod. |
 | **Route 53**               | Workload accounts               | DNS hostnames                          | Maps friendly names to the ALB.                                                                            |
 | **ACM**                    | Workload accounts               | TLS certificates                       | Free managed certs on the ALB HTTPS listener.                                                              |
-| **AWS WAF**                | Workload accounts (prod target) | Web application firewall               | Web ACL on the ALB in production — planned before go-live.                                                |
+| **AWS WAF**                | Workload accounts (prod required) | Web application firewall               | Web ACL on the **production ALB** — required before go-live (R130). Omitted in dev/test to save cost.     |
 
 **Key decision:** Internet-facing **ALB** in public subnets; **ECS tasks stay in private subnets** registered as target group targets. Operators get one hostname, path-based routing, and standard ECS observability (ALB access logs → OpenSearch).
 
@@ -170,7 +196,9 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 
 **ACM (AWS Certificate Manager)** — AWS issues and auto-renews **TLS certificates** (the “padlock” for HTTPS). You prove domain ownership (usually via DNS in Route 53), and ACM handles renewal before expiry. **How we use it:** Attach an ACM certificate to the **ALB HTTPS listener** so users reach `https://<app-hostname>` with a valid cert.
 
-**WAF (AWS Web Application Firewall)** — A **layer-7 firewall** that inspects HTTP requests before they reach your app. Managed rule groups block SQL injection, cross-site scripting, known bad bots, and oversized payloads; you can add rate limits and geo rules. **How we use it:** Associate a WAF **web ACL** with the **production ALB**. Dev and test can omit WAF to save cost; production should enable it before go-live (finding F8). WAF complements Cognito and API JWT checks — it filters malicious traffic, not “is this user logged in?”
+**WAF (AWS Web Application Firewall)** — A **layer-7 firewall** that inspects HTTP requests before they reach your app. Managed rule groups block SQL injection, cross-site scripting, known bad bots, and oversized payloads; you can add rate limits and geo rules. **How we use it:** Associate a WAF **web ACL** with the **production ALB** before customer go-live (task R130). Dev and staging may omit WAF. WAF complements Cognito and API JWT checks — it filters malicious traffic, not “is this user logged in?”
+
+**Production go-live (WAF):** Enable AWS WAF on the production ALB with at least AWS Managed Rules (common rule set, known bad inputs); add rate-based rules when traffic patterns are known. Template: extend `templates/dev/alb.yaml` pattern for production with `AWS::WAFv2::WebACLAssociation`.
 
 **ALB (Application Load Balancer)** — A **regional load balancer** in the VPC that distributes HTTP/HTTPS to **target groups** (ECS services). It health-checks tasks, supports path/host/header routing, and integrates with ECS service connect patterns. **How we use it:** One **internet-facing ALB** per workload environment; listener rules send journey paths to SPA and API target groups (see F12 for hostname vs path tenancy). This matches how nginx proxies in Developer Edition Compose.
 
@@ -186,6 +214,19 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 - **Team scale** — four journey SPAs at apprentice volume; Fargate cost is acceptable until traffic or cost review says otherwise.
 
 **Revisit trigger:** If production traffic or monthly ECS cost for static serving justifies moving **SPA build output** to S3 + CloudFront and routing `/api/*` on the ALB only (See F11 follow-up). APIs stay on ECS.
+
+#### VPC interface endpoints (workload VPCs)
+
+Private ECS tasks pull images, read secrets, and access S3 without routing that traffic through the **NAT Gateway** when **interface endpoints** are present.
+
+| Endpoint | Service | Why |
+|----------|---------|-----|
+| `com.amazonaws.us-east-1.ecr.api` | ECR API | Auth and layer metadata for image pull |
+| `com.amazonaws.us-east-1.ecr.dkr` | ECR Docker | Layer download (pairs with pull-through cache in dev) |
+| `com.amazonaws.us-east-1.s3` | S3 | Gateway endpoint — S3 access from private subnets |
+| `com.amazonaws.us-east-1.secretsmanager` | Secrets Manager | DocumentDB credentials and tenant secrets at task start |
+
+Implement in **`templates/dev/network.yaml`** (R040) for `mentorhub-dev`; repeat in staging/production VPC stacks. Endpoints live in **private subnets** used by ECS tasks.
 
 ---
 
@@ -211,6 +252,18 @@ merge main → build → ECR (:latest) → promote (tag → tag) → deploy (ten
 | `training`   | Workshops and onboarding                                |
 | `conference` | Short-lived demo environment (may promote prod digests) |
 
+
+#### DocumentDB backup and restore
+
+| Environment | Backup approach |
+|-------------|-----------------|
+| **Dev** | Automated backups enabled with shorter retention (e.g. 1–3 days); restore test optional |
+| **Staging** | Automated backups; periodic restore drill before major releases |
+| **Production** | Automated backups **required before go-live**; retention per RPO (e.g. 7–35 days); **restore test** in runbook (R130) |
+
+**Template defaults (production target):** enable automated backups in DocumentDB CloudFormation — snapshot window, retention period, copy tags for environment. **Restore runbook:** restore to a new cluster from snapshot → update Secrets Manager connection string → verify application read/write → cut over or tear down failed cluster.
+
+Traffic and incidents will drive retention tuning; the architecture requires backups and a tested restore path before production serves customers.
 
 **Why share a cluster in dev:** Cost. A DocumentDB cluster has a minimum hourly charge. Four clusters for four tenants would multiply cost without improving dev fidelity. Logical isolation by database name is sufficient for non-production **if** connection strings and secrets are tenant-scoped and access controls are enforced in application config.
 
@@ -521,12 +574,6 @@ Items that are **incorrect, inconsistent, or risky** in the current design packa
 
 | #   | Finding                                                                          | Severity              | Recommendation                                                                                                                                                              |
 | --- | -------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F5  | **No cross-account ECR pull design** documented                                  | High                  | ECS in workload accounts must pull from ECR in Shared-Services (`560167829275`). Document repository policies and/or pull-through cache; add to templates before R030/R060. |
-| F6  | **Identity Center in** `us-east-2`**, workloads in** `us-east-1`                 | Low (valid)           | Not wrong — Identity Center home region is chosen at enablement and is independent of workload region. Document this so interns do not "fix" it by collapsing regions.      |
-| F7  | **$100/month budgets** on all accounts including production                      | Medium                | Fine as a dev-team alarm; not a capacity plan. Production needs a realistic budget and right-sizing after load testing.                                                     |
-| F8  | **No WAF** on production edge                                                    | High (before go-live) | Add AWS WAF web ACL on the production **ALB**. Dev can omit.                                                                                                                  |
-| F9  | **No backup / restore runbook** for DocumentDB                                   | High (before go-live) | Define retention, snapshot schedule, and restore test. DocumentDB supports automated backups — enable in template.                                                          |
-| F10 | **No VPC endpoints** for ECR, S3, Secrets Manager                                | Medium                | NAT Gateway charges per GB; interface endpoints reduce NAT traffic and improve security posture. Add when cost/ops reviewed.                                                |
 | F11 | **SPA hosting on ECS nginx** (decided)                                           | Low (monitor)         | Revisit **S3 + CloudFront** when static hosting cost or traffic warrants; deploy asset would become `dist/` files in S3, not a cache over nginx. APIs stay on ECS.          |
 | F12 | **Tenant routing undecided** (hostname per tenant vs path prefix on shared host) | Medium                | ALB supports both (host-based vs path-based listener rules). Path-based (`/coordinator/*`) is simpler with one cert; hostname-per-tenant mirrors prod more closely. Pick one for dev and document in templates. |
 | F13 | **GitHub OIDC roles still manual**; placeholder CloudFormation template          | Medium                | Complete R031 — drift between console and IaC is already a risk for CodeArtifact roles.                                                                                     |
@@ -587,10 +634,10 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 
 **For the Junior Architect — before staging/prod templates:**
 
-1. Document cross-account ECR pull and implement in IaC (F5).
-2. Resolve tenant routing on the ALB (F12); SPA hosting is ECS nginx containers (F11 — decided).
-3. Add production hardening checklist: WAF, DocumentDB backups, OpenSearch/Grafana access control, realistic budgets.
-4. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
+1. Resolve tenant routing on the ALB (F12); SPA hosting is ECS nginx containers (F11 — decided).
+2. Design log pipeline (CloudWatch → OpenSearch) and metrics labels for multi-tenant dev (F15–F19).
+3. Implement cross-account ECR in IaC (R030 repository policies, R060 execution role, pull-through template) per [docs/ecr-cross-account.md](./docs/ecr-cross-account.md).
+4. Production go-live checklist (WAF, DocumentDB backups, OpenSearch/Grafana access) is documented in platform sections — implement in R130 templates and runbooks.
 
 ---
 
@@ -605,6 +652,7 @@ See [config/aws-platform.yaml](./config/aws-platform.yaml) for canonical IDs and
 | **ARCHITECTURE.md** (this file)                                                                                                    | Design rationale and review — *why* and *what to fix* |
 | [config/aws-platform.yaml](./config/aws-platform.yaml)                                                                             | As-built configuration values                         |
 | [docs/github-ci.md](./docs/github-ci.md)                                                                                           | GitHub org variables, secrets, CI workflows           |
+| [docs/ecr-cross-account.md](./docs/ecr-cross-account.md)                                                                         | Cross-account ECR pull and pull-through cache         |
 | [docs/InfrastructureDiagram.svg](./docs/InfrastructureDiagram.svg)                                                                 | Platform diagram (WIP)                                |
 | [docs/ArchitectureDiagram.dev.svg](./docs/ArchitectureDiagram.dev.svg)                                                             | Cloud DEV runtime diagram (WIP)                       |
 | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) | Product journeys and repositories                     |

@@ -1,0 +1,7 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PLACEHOLDER — ECR pull-through cache from Shared-Services upstream. Implement with R060.
+# Design: docs/ecr-cross-account.md — upstream 560167829275, prefix mentorhub, workload account 083141433373
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

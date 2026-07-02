@@ -17,7 +17,8 @@ Deploy Fargate ECS cluster, CloudWatch log groups, and task execution role (ECR 
 ## Requirements
 
 - [ ] **R060.1** Template `templates/dev/ecs-cluster.yaml` — Fargate cluster + CloudWatch log groups
-- [ ] **R060.2** ECS task execution role: ECR pull, Secrets Manager read, CloudWatch logs
+- [ ] **R060.2** ECS task execution role: ECR pull (cross-account or pull-through local namespace), Secrets Manager read, CloudWatch logs
+- [ ] **R060.2a** Optional stack `templates/dev/ecr-pull-through.yaml` — pull-through cache rule from Shared-Services ([docs/ecr-cross-account.md](../docs/ecr-cross-account.md))
 - [ ] **R060.3** Validate: empty cluster visible in console
 
 ## Validation expectations

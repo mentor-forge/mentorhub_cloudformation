@@ -45,9 +45,11 @@ AWS Organization
 
 | Setting | Value |
 |---------|-------|
-| Primary workload region | `us-east-1` |
-| IAM Identity Center region | `us-east-2` |
+| Primary workload region | `us-east-1` — CodeArtifact, ECR, ECS, DocumentDB, ALB |
+| IAM Identity Center region | `us-east-2` — SSO sign-in only (`aws sso login`); not where workloads run |
 | Canonical platform config | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
+
+**Two regions by design:** Identity Center’s home region (`us-east-2`) is fixed at org enablement and is independent of where application resources deploy (`us-east-1`). After SSO login, CLI and service calls use **`us-east-1`** (profile `region` or `--region us-east-1`). Do not collapse these into one region.
 
 ### Deployment status
 
@@ -86,7 +88,7 @@ Multi-tenant account for development, test, training, conference, and other shor
 | Service | AWS | Name / detail |
 |---------|-----|---------------|
 | Logging | CloudTrail | |
-| Network | VPC | `mentorhub-dev-vpc` — `10.0.0.0/16` |
+| Network | VPC | `mentorhub-dev-vpc` — `10.0.0.0/16`; interface endpoints for ECR, S3, Secrets Manager (R040) |
 | Container runtime | ECS | `mentorhub-dev-ecs` |
 | Database | DocumentDB | `mentorhub-dev-documentdb` — one cluster, database per tenant |
 | Identity | Cognito | `mentorhub-dev-cognito` |
@@ -124,6 +126,7 @@ Single-tenant account that mirrors production topology. May be scaled down or sh
 | DNS | Route 53 | `mentorhub-staging-route53` |
 | Email | SES | `mentorhub-staging-ses` |
 | Object storage | S3 | `mentorhub-staging-s3` |
+| Edge | ALB + ACM | HTTPS entry; WAF optional in staging |
 
 | Tenant | Image tag | Database |
 |--------|-----------|----------|
@@ -143,6 +146,8 @@ Single-tenant **always-on** live production environment.
 | DNS | Route 53 | `mentorhub-production-route53` |
 | Email | SES | `mentorhub-production-ses` |
 | Object storage | S3 | `mentorhub-production-s3` |
+| Edge | ALB + ACM + **WAF** | WAF web ACL on ALB **required before go-live** (R130) |
+| Database ops | DocumentDB backups | Automated snapshots; retention and restore test defined before go-live (R130) |
 
 | Tenant | Image tag | Database |
 |--------|-----------|----------|
@@ -253,6 +258,7 @@ Stack naming convention: `mentorhub-<env>-<component>`.
 | Platform overview (accounts, tenancy, CI/CD) | [`README.md`](./README.md) |
 | AWS account IDs, SSO, CodeArtifact | [`config/aws-platform.yaml`](./config/aws-platform.yaml) |
 | GitHub org CI, secrets, workflows | [`docs/github-ci.md`](./docs/github-ci.md) |
+| Cross-account ECR pull and pull-through cache | [`docs/ecr-cross-account.md`](./docs/ecr-cross-account.md) |
 | Platform diagram | [`docs/InfrastructureDiagram.svg`](./docs/InfrastructureDiagram.svg) |
 | Cloud DEV runtime diagram | [`docs/ArchitectureDiagram.dev.svg`](./docs/ArchitectureDiagram.dev.svg) |
 | Product architecture | [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml) |
