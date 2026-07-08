@@ -10,15 +10,15 @@ Copy Dev templates to a staging account with smaller sizing and immutable image 
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md) — §Phase 2 account model
+- [README.md](../README.md) — platform overview — §Phase 2 account model
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 
 ## Requirements
 
 - [ ] **R120.1** Decide account model (CloudEnvironmentPlan §Phase 2)
-- [ ] **R120.2** Add `parameters/staging.json`
-- [ ] **R120.3** Deploy R040–R090 stack set in staging account (smaller sizing)
+- [ ] **R120.2** Staging account parameters — record account ID when created; **`VpcCidr` `10.1.0.0/16`** in `parameters/staging.json` and `config/aws-platform.yaml` (non-overlapping with dev `10.0.0.0/16`, production `10.2.0.0/16`)
+- [ ] **R120.3** Deploy R040–R090 stack set in staging account (smaller sizing; network uses `10.1.0.0/16`)
 - [ ] **R120.4** CD: promote immutable image dev → staging
 - [ ] **R120.5** Create `ArchitectureDiagram.staging.svg` in mentorhub Specifications
 - [ ] **R120.6** Staging smoke test + test-data policy

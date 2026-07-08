@@ -1,0 +1,318 @@
+# MentorHub AWS platform configuration
+# Canonical source of truth (SRE). Shell defaults: mentorhub/DeveloperEdition/aws-platform.env
+
+aws:
+  primary_region: us-east-1
+  identity_center_region: us-east-2
+  recorded: 2026-06-04
+  updated: 2026-07-02
+  regions_note: SSO authenticates in us-east-2; all workload and platform service APIs use us-east-1
+
+organization:
+  id: o-zokgnnpypo
+  management_account_id: "680206182977"
+
+accounts:
+  management:
+    account_id: "680206182977"
+    name: Mike Storey
+    email: flatballflyer@gmail.com
+    profile: mentorhub-management
+    status: active
+    note: Organization root — Identity Center, billing, governance only; no application workloads.
+  shared_services:
+    account_id: "560167829275"
+    name: Shared-Services
+    email: mentorhub@agile-learning.institute
+    profile: mentorhub-shared
+    status: created
+    budget_usd_monthly: 100
+  mentorhub_dev:
+    account_id: "083141433373"
+    name: mentorhub-dev
+    email: mentorhub-dev@agile-learning.institute
+    profile: mentorhub-dev
+    status: created
+    budget_usd_monthly: 100
+    cloudtrail:
+      trail_name: mentorhub-dev-trail
+      kms_alias: alias/mentorhub-dev-cloudtrail
+    network:
+      vpc_name: mentorhub-dev-vpc
+      vpc_cidr: 10.0.0.0/16
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+      subnets:
+        - name: mentorhub-dev-subnet-public1-us-east-1a
+          cidr: 10.0.0.0/20
+          type: public
+        - name: mentorhub-dev-subnet-private1-us-east-1a
+          cidr: 10.0.128.0/20
+          type: private
+        - name: mentorhub-dev-subnet-public2-us-east-1b
+          cidr: 10.0.16.0/20
+          type: public
+        - name: mentorhub-dev-subnet-private2-us-east-1b
+          cidr: 10.0.144.0/20
+          type: private
+      vpc_endpoints:
+        - com.amazonaws.us-east-1.ecr.api
+        - com.amazonaws.us-east-1.ecr.dkr
+        - com.amazonaws.us-east-1.s3
+        - com.amazonaws.us-east-1.secretsmanager
+  mentorhub_staging:
+    account_id: TBD
+    status: not_created
+    budget_usd_monthly: 100
+    network:
+      vpc_name: mentorhub-staging-vpc
+      vpc_cidr: 10.1.0.0/16
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+  mentorhub_production:
+    account_id: TBD
+    status: not_created
+    budget_usd_monthly: 100
+    network:
+      vpc_name: mentorhub-production-vpc
+      vpc_cidr: 10.2.0.0/16
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+
+codeartifact:
+  account_id: 560167829275
+  domain: mentor-forge
+  domain_arn: arn:aws:codeartifact:us-east-1:560167829275:domain/mentor-forge
+  domain_owner: 560167829275
+  pypi_repo: mentorhub-pypi
+  pypi_repo_arn: arn:aws:codeartifact:us-east-1:560167829275:repository/mentor-forge/mentorhub-pypi
+  npm_repo: mentorhub-npm
+  npm_repo_arn: arn:aws:codeartifact:us-east-1:560167829275:repository/mentor-forge/mentorhub-npm
+  region: us-east-1
+  status: operational
+  cloudformation_stack: mentorhub-shared-services-codeartifact
+  encryption_key_arn: arn:aws:kms:us-east-1:560167829275:key/1cccc7d9-0b63-45e3-8ca8-655a755bf295
+  external_connections:
+    pypi: public:pypi
+    npm: public:npmjs
+  created: 2026-06-10
+
+packages:
+  pypi:
+    name: api-utils
+    distribution: api_utils
+    source_repo: mentorhub_api_utils
+    status: published
+  npm:
+    name: "@mentor-forge/mentorhub_spa_utils"
+    source_repo: mentorhub_spa_utils
+    status: published
+
+container_registry:
+  ghcr:
+    org: mentor-forge
+    url: ghcr.io/mentor-forge
+    status: operational
+    note: Interim for local dev and dual-push until R100 ECR-only cutover
+  ecr:
+    status: in_progress
+    region: us-east-1
+    authoritative_account: shared_services
+    authoritative_account_id: "560167829275"
+    registry_host: 560167829275.dkr.ecr.us-east-1.amazonaws.com
+    push_principals:
+      - github_oidc_role: GitHubActionsECRPush
+        account: shared_services
+    pull_model:
+      decision: shared_services_authoritative_with_workload_pull_through_cache
+      documentation: docs/ecr-cross-account.md
+      upstream:
+        account_id: "560167829275"
+        registry_host: 560167829275.dkr.ecr.us-east-1.amazonaws.com
+      workload_accounts:
+        mentorhub_dev:
+          account_id: "083141433373"
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+            template: templates/dev/ecr-pull-through.yaml
+            note: Lazy-sync from Shared-Services; ECS task defs use local registry URI
+          direct_cross_account_pull:
+            enabled: true
+            note: Pilot fallback — task def may reference upstream URI until pull-through deployed
+          ecs_task_execution_role: mentorhub-dev-ecs-task-execution
+        mentorhub_staging:
+          account_id: TBD
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+        mentorhub_production:
+          account_id: TBD
+          pull_through:
+            enabled: true
+            repository_prefix: mentorhub
+    repository_policy:
+      allowed_pull_actions:
+        - ecr:BatchCheckLayerAvailability
+        - ecr:GetDownloadUrlForLayer
+        - ecr:BatchGetImage
+        - ecr:DescribeImages
+      workload_execution_roles:
+        - arn:aws:iam::083141433373:role/mentorhub-dev-ecs-task-execution
+    repositories:
+      pilot:
+        - mentorhub-welcome
+        - mentorhub-coordinator-api
+        - mentorhub-coordinator-spa
+      journey_pattern: mentorhub-{journey}-{api|spa}
+    cloudformation_stacks:
+      shared_services: templates/shared-services/ecr.yaml
+      pull_through_dev: templates/dev/ecr-pull-through.yaml
+
+edge:
+  routing:
+    decision: path_based
+    hostname_per_environment: true
+    tenant_path_prefix:
+      mentorhub_dev: true
+      single_tenant_accounts: false
+    journey_paths:
+      - coordinator
+      - mentor
+      - mentee
+      - customer
+    path_patterns:
+      journey: "/{journey}/*"
+      tenant_and_journey: "/{tenant}/{journey}/*"
+    implementation: templates/dev/alb.yaml
+    task: R070
+
+vpc_cidr_plan:
+  note: Non-overlapping /16 per account for optional future peering or TGW
+  mentorhub_dev: 10.0.0.0/16
+  mentorhub_staging: 10.1.0.0/16
+  mentorhub_production: 10.2.0.0/16
+
+production_hardening:
+  go_live_tasks: R130
+  waf:
+    required: true
+    attach_to: production_alb
+    minimum_rules:
+      - AWSManagedRulesCommonRuleSet
+      - AWSManagedRulesKnownBadInputsRuleSet
+  documentdb:
+    automated_backups_required: true
+    restore_test_required: true
+    note: Retention tuned when traffic and RPO are known; backups and restore path required before go-live
+
+identity_center:
+  sso_region: us-east-2
+  sso_start_url: https://d-9a67582559.awsapps.com/start
+  sso_session_name: mentor-forge
+  groups:
+    - Organization-Admin
+    - SRE
+    - Developer
+  permission_sets:
+    - Organization-Admin
+    - SRE
+    - Developer-Packages
+
+github_org_variables:
+  AWS_REGION: us-east-1
+  AWS_SHARED_SERVICES_ACCOUNT_ID: 560167829275
+  CODEARTIFACT_DOMAIN: mentor-forge
+  CODEARTIFACT_PYPI_REPO: mentorhub-pypi
+  CODEARTIFACT_NPM_REPO: mentorhub-npm
+
+github_org_secrets:
+  # IAM role ARNs in Shared-Services — not access keys. See docs/github-ci.md.
+  AWS_ROLE_ARN_READ:
+    iam_role: GitHubActionsCodeArtifactRead
+    purpose: codeartifact_read_for_docker_builds
+    workflows:
+      - journey_api_docker_push
+      - journey_spa_docker_push
+  AWS_ROLE_ARN_PUBLISH:
+    iam_role: GitHubActionsCodeArtifactPublish
+    purpose: codeartifact_publish_on_version_tag
+    workflows:
+      - api_utils_publish_package
+      - spa_utils_publish_package
+  # Planned (R030 / R100):
+  # AWS_ROLE_ARN_ECR_PUSH: GitHubActionsECRPush
+  # AWS_ROLE_ARN_ECS_DEPLOY: GitHubActionsECSDeploy
+
+github_ci:
+  organization: mentor-forge
+  documentation: docs/github-ci.md
+  oidc_provider: token.actions.githubusercontent.com
+  oidc_account: shared_services
+  workflow_patterns:
+    journey_api_docker_push:
+      trigger: push_to_main
+      registry: ghcr.io/mentor-forge
+      codeartifact: pypi
+      docker_build_arg: PIP_INDEX_URL
+    journey_spa_docker_push:
+      trigger: push_to_main
+      registry: ghcr.io/mentor-forge
+      codeartifact: npm
+      docker_build_secret: codeartifact_token
+    library_publish:
+      trigger: push_tag_v_star
+      targets:
+        - repo: mentorhub_api_utils
+          registry: codeartifact_pypi
+        - repo: mentorhub_spa_utils
+          registry: codeartifact_npm
+    cfn_lint:
+      repo: mentorhub_cloudformation
+      trigger: push_and_pull_request_main
+      aws_auth: none
+
+sso_profiles:
+  shared_services: mentorhub-shared
+  dev_workload: mentorhub-dev
+  management: mentorhub-management
+  default_roles:
+    shared_services: Developer-Packages
+    dev_workload: Developer
+    management: Organization-Admin
+
+observability:
+  status: not_started
+  placement: shared_services
+  logs:
+    stack: amazon_opensearch_service
+    decision: managed_opensearch_not_self_managed_elk
+    components:
+      - opensearch_domain
+      - opensearch_dashboards
+      - fluent_bit_or_opensearch_ingestion
+    collection: cloudwatch_logs_forwarding
+  metrics:
+    stack: amazon_managed_prometheus_grafana
+    components:
+      - amazon_managed_prometheus
+      - amazon_managed_grafana
+      - adot_or_metrics_scrape_agent
+    collection: ecs_task_scrape_remote_write_to_amp
+    placement: shared_services
+    multi_tenant:
+      tenants: [dev, test, training, conference]
+      journeys: [coordinator, customer, mentee, mentor]
+      labels: [tenant, environment, service, journey]
+    application:
+      endpoint: /metrics
+      implementation: api_utils.create_metric_routes
+      auth: none
+      standard: required_on_all_domain_apis
+      scrape_target: api_container_private_ip
+  audit:
+    service: cloudtrail
+    note: separate from application logs and metrics

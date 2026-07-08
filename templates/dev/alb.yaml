@@ -1,0 +1,6 @@
+Description: PLACEHOLDER — Internet-facing Application Load Balancer, listener rules, and target groups for journey SPAs/APIs. Implement in R070.
+# Path routing: config/aws-platform.yaml → edge.routing (/{tenant}/{journey}/* in dev)
+
+Resources:
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

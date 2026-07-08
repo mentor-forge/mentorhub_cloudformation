@@ -10,16 +10,16 @@ Deploy MentorHub-Dev foundation: account ID recorded, CloudTrail/budget, VPC, su
 
 ## Context / Input files
 
-- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
+- [config/aws-platform.yaml](../config/aws-platform.yaml)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 - `parameters/dev.json` in this repo
 
 ## Requirements
 
-- [ ] **R040.1** Record MentorHub-Dev AWS account ID in `parameters/dev.json` and aws-platform.yaml (mentorhub PR)
+- [x] **R040.1** Record MentorHub-Dev AWS account ID in `parameters/dev.json` and aws-platform.yaml — **`083141433373`** (2026-07-02)
 - [ ] **R040.2** Template `templates/dev/cloudtrail.yaml` + budget (~$50/month)
-- [ ] **R040.3** Template `templates/dev/network.yaml` — VPC `10.0.0.0/16`, 2 public + 2 private subnets, IGW, NAT
+- [ ] **R040.3** Template `templates/dev/network.yaml` — VPC `10.0.0.0/16`, 2 public + 2 private subnets, IGW, NAT, VPC interface endpoints (ECR, Secrets Manager) and S3 gateway
 - [ ] **R040.4** Security groups: `alb-sg`, `ecs-sg`, `documentdb-sg` (gateway → ECS → DB)
 - [ ] **R040.5** Validate: subnets and NAT; private egress works
 
@@ -41,7 +41,7 @@ Dev VPC and governance stacks deployed; network outputs available for Phase 3B�
 
 ## Change control checklist
 
-- [ ] Dev account ID recorded in parameters and aws-platform.yaml.
+- [x] Dev account ID recorded in parameters and aws-platform.yaml.
 - [ ] Stacks deployed in order.
 - [ ] Network smoke test passed.
 - [ ] Scoped commit referencing R040.

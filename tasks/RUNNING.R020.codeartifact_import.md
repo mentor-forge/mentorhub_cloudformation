@@ -10,8 +10,7 @@ Bring existing CodeArtifact domain and repositories under CloudFormation managem
 
 ## Context / Input files
 
-- [docs/specifications/INFO.md](../docs/specifications/INFO.md) — as-built commands
-- [docs/specifications/aws-platform.yaml](../docs/specifications/aws-platform.yaml)
+- [config/aws-platform.yaml](../config/aws-platform.yaml) — CodeArtifact resource identifiers
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ### Existing resources (import targets)
@@ -25,10 +24,10 @@ Bring existing CodeArtifact domain and repositories under CloudFormation managem
 
 ## Requirements
 
-- [x] **R020.1** Add template `templates/shared-services/codeartifact.yaml` matching INFO.md
+- [x] **R020.1** Add template `templates/shared-services/codeartifact.yaml` matching `config/aws-platform.yaml`
 - [x] **R020.2** Plan CloudFormation **resource import** for domain + both repositories
 - [ ] **R020.3** Run import change set (`--import-existing-resources`)
-- [ ] **R020.4** Stack update: ensure external connections `public:pypi` and `public:npmjs` match INFO.md
+- [ ] **R020.4** Stack update: ensure external connections `public:pypi` and `public:npmjs` match `config/aws-platform.yaml`
 - [ ] **R020.5** Tag imported resources
 - [ ] **R020.6** Validate: `aws codeartifact list-repositories-in-domain --domain mentor-forge --domain-owner 560167829275 --region us-east-1 --profile mentorhub-shared`
 - [ ] **R020.7** Validate: local `mh` → `pipenv run install` / `npm ci` in a consumer repo
@@ -51,7 +50,7 @@ CodeArtifact under CloudFormation management with zero consumer breakage.
 
 ## Change control checklist
 
-- [x] Reviewed INFO.md and aws-platform.yaml.
+- [x] Reviewed config/aws-platform.yaml.
 - [x] Template matches live resource identifiers.
 - [ ] Import change set dry-run reviewed.
 - [ ] Post-import CLI and consumer smoke tests passed.
@@ -61,7 +60,7 @@ CodeArtifact under CloudFormation management with zero consumer breakage.
 
 **Summary of changes**
 
-- Implemented `templates/shared-services/codeartifact.yaml` with `MentorForgeDomain`, `PypiRepository`, and `NpmRepository` resources matching INFO.md (domain KMS key, descriptions, external connections). `DeletionPolicy: Retain` on all resources.
+- Implemented `templates/shared-services/codeartifact.yaml` with `MentorForgeDomain`, `PypiRepository`, and `NpmRepository` resources matching `config/aws-platform.yaml` (domain KMS key, descriptions, external connections). `DeletionPolicy: Retain` on all resources.
 - Added `import/codeartifact-resources-to-import.json` mapping logical IDs to live resource identifiers.
 - Added `scripts/import-codeartifact-stack.sh` with `preflight`, `plan`, `execute`, `validate`, `smoke`, and `apply-tags` subcommands.
 

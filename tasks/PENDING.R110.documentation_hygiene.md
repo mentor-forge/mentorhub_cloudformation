@@ -11,14 +11,14 @@ Align specifications, diagrams, and SRE standards with deployed infrastructure.
 ## Context / Input files
 
 - [mentorhub/Specifications/ArchitectureDiagram.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.md)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 - [mentorhub/DeveloperEdition/standards/sre_standards.md](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/sre_standards.md)
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
+- [README.md](../README.md) — platform overview
 
 ## Requirements
 
 - [ ] **R110.1** Update ArchitectureDiagram.md — link Infrastructure + CF checklist + mentorhub_cloudformation repo
-- [ ] **R110.2** Update InfrastructureDiagram.svg — add missing internal arrows (VPC ↔ ECS ↔ API Gateway ↔ DocumentDB)
+- [ ] **R110.2** Update InfrastructureDiagram.svg and ArchitectureDiagram.dev.* — ALB (not API Gateway), VPC ↔ ECS ↔ ALB ↔ DocumentDB
 - [ ] **R110.3** Note GHCR interim vs ECR target on diagram
 - [ ] **R110.4** Revise sre_standards.md to as-implemented (replace "IaC TBD")
 - [ ] **R110.5** Update CloudEnvironmentPlan.md checkboxes to match deployed stacks

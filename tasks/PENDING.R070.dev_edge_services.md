@@ -6,27 +6,29 @@
 
 ## Goal
 
-Deploy API Gateway, Cognito, S3, Route53/ACM, and SES stacks for Dev — defer individual stacks if blocked by domain or IdP decisions.
+Deploy **ALB** (public HTTPS edge), Cognito, S3, Route53/ACM, and SES stacks for Dev — defer individual stacks if blocked by domain or IdP decisions.
+
+**Edge decision:** [ARCHITECTURE.md](../ARCHITECTURE.md) — **ALB**, not API Gateway (ECS + path routing + in-app JWT validation).
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
-- [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/ArchitectureDiagram.dev.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.svg)
+- [README.md](../README.md) — platform overview
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — network and edge (ALB decision)
+- [ArchitectureDiagram.dev.svg](../docs/ArchitectureDiagram.dev.svg)
 - [mentorhub/DeveloperEdition/standards/sre_standards.md](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/sre_standards.md)
 
 ## Requirements
 
-- [ ] **R070.1** Template `templates/dev/api-gateway.yaml` — HTTP/REST API, route to pilot API
+- [ ] **R070.1** Template `templates/dev/alb.yaml` — internet-facing ALB, HTTPS listener (ACM), **path-based** listener rules (`/{tenant}/{journey}/*` in dev — see `config/aws-platform.yaml` → `edge.routing`), target group outputs for R080
 - [ ] **R070.2** Template `templates/dev/cognito.yaml` — user pool + app clients *(or defer: interim welcome JWT)*
 - [ ] **R070.3** Template `templates/dev/s3.yaml` — app bucket(s), block public access
 - [ ] **R070.4** Template `templates/dev/route53-acm.yaml` — hosted zone + ACM cert *(when domain owned)*
 - [ ] **R070.5** Template `templates/dev/ses.yaml` — verified domain / sandbox *(when email ready)*
-- [ ] **R070.6** Validate: API Gateway URL returns coordinator API health (HTTPS optional until R070.4)
+- [ ] **R070.6** Validate: ALB URL returns coordinator API health (HTTP until R070.4; HTTPS after ACM on listener)
 
 ## Validation expectations
 
-- API Gateway integrates with network/ECS outputs.
+- ALB integrates with network/ECS outputs (target groups registered from R080).
 - Deferred stacks documented as `Blocked` follow-up tasks if prerequisites missing.
 
 ## Dependencies / Ordering
@@ -36,7 +38,7 @@ Deploy API Gateway, Cognito, S3, Route53/ACM, and SES stacks for Dev — defer i
 
 ## Exit criteria
 
-Dev swimlane edge services deployed as far as decisions allow; API Gateway reachable for pilot.
+Dev swimlane edge services deployed as far as decisions allow; **ALB** reachable for pilot.
 
 ## Change control checklist
 
@@ -52,3 +54,5 @@ Dev swimlane edge services deployed as far as decisions allow; API Gateway reach
 **Validation results**
 
 **Follow-up tasks**
+
+- Update `ArchitectureDiagram.dev.*` labels from API Gateway to ALB (R110).

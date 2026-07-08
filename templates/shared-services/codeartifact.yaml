@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   MentorHub Shared-Services CodeArtifact domain and repositories.
-  Import existing resources per Specifications/INFO.md (R020). Do not recreate.
+  Import existing resources per config/aws-platform.yaml (R020). Do not recreate.
 
 Parameters:
   ProjectName:
@@ -35,7 +35,7 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       DomainName: !Ref CodeArtifactDomain
-      # As-built KMS key from INFO.md — required for import property match.
+      # As-built KMS key from config/aws-platform.yaml — required for import property match.
       EncryptionKey: !Sub "arn:aws:kms:${AwsRegion}:${SharedServicesAccountId}:key/1cccc7d9-0b63-45e3-8ca8-655a755bf295"
 
   PypiRepository:

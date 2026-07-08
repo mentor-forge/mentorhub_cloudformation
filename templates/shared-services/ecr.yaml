@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: PLACEHOLDER — ECR repositories and lifecycle policies. Implement in R030.
+Description: PLACEHOLDER — ECR repositories, lifecycle policies, and cross-account repository policies. Implement in R030.
+# Repository policies + workload pull: docs/ecr-cross-account.md
 
 Resources:
   Placeholder:

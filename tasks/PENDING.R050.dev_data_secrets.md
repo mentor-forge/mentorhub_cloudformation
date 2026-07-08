@@ -10,9 +10,9 @@ Deploy DocumentDB and Secrets Manager entries for database connection strings an
 
 ## Context / Input files
 
-- [mentorhub/Specifications/CloudEnvironmentPlan.md](../docs/specifications/CloudEnvironmentPlan.md)
+- [README.md](../README.md) — platform overview
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
-- [mentorhub/Specifications/InfrastructureDiagram.svg](../docs/specifications/InfrastructureDiagram.svg)
+- [InfrastructureDiagram.svg](../docs/InfrastructureDiagram.svg)
 - Network stack outputs from R040
 
 ## Requirements

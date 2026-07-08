@@ -10,8 +10,8 @@ Deploy customer, mentor, and mentee journeys plus supporting ops services in Dev
 
 ## Context / Input files
 
-- [mentorhub/Specifications/ArchitectureDiagram.dev.svg](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.svg)
-- [mentorhub/Specifications/ArchitectureDiagram.dev.guide.md](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/ArchitectureDiagram.dev.guide.md)
+- [ArchitectureDiagram.dev.svg](../docs/ArchitectureDiagram.dev.svg)
+- [ArchitectureDiagram.dev.guide.md](../docs/guides/ArchitectureDiagram.dev.guide.md)
 - [mentorhub/Specifications/architecture.yaml](https://github.com/mentor-forge/mentorhub/blob/main/Specifications/architecture.yaml)
 
 ### Journeys
@@ -30,7 +30,7 @@ Also: `mongodb_api` (configure job), `runbook_api` (ops).
 - [ ] **R090.2** Template `templates/dev/ecs-services-customer.yaml` — deploy + smoke test
 - [ ] **R090.3** Template `templates/dev/ecs-services-mentor.yaml` — deploy + smoke test
 - [ ] **R090.4** Template `templates/dev/ecs-services-mentee.yaml` — deploy + smoke test *(merge [mentorhub_mentee_api](https://github.com/mentor-forge/mentorhub_mentee_api) CodeArtifact PR #1 first)*
-- [ ] **R090.5** Wire API Gateway / ALB routes: SPA static + `/api/*` → paired API
+- [ ] **R090.5** Wire **ALB** listener rules: journey SPA paths + `/api/*` → paired API target groups
 - [ ] **R090.6** Replace interim dev `login.html` with Cognito when R070.2 complete
 - [ ] **R090.7** Full Dev smoke test across all journeys
 
