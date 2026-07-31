@@ -252,6 +252,20 @@ github_ci:
   documentation: docs/github-ci.md
   oidc_provider: token.actions.githubusercontent.com
   oidc_account: shared_services
+  # Subjects for GitHubActionsCodeArtifactRead (refs/heads/main). Update IAM trust when adding repos.
+  codeartifact_read_trust_repos:
+    - mentorhub_coordinator_api
+    - mentorhub_customer_api
+    - mentorhub_mentee_api
+    - mentorhub_mentor_api
+    - mentorhub_coordinator_spa
+    - mentorhub_customer_spa
+    - mentorhub_mentee_spa
+    - mentorhub_mentor_spa
+    - mentorhub_admin_api
+    - mentorhub_admin_spa
+    - mentorhub_discovery_api
+    - mentorhub_discovery_spa
   workflow_patterns:
     journey_api_docker_push:
       trigger: push_to_main

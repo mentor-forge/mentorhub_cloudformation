@@ -65,6 +65,15 @@ GitHub Actions authenticates to AWS using **web identity federation** — no sta
 
 **Trust (summary):** `repo:mentor-forge/<journey_*_api|*_spa>:ref:refs/heads/main` for each journey repo that runs `docker-push.yml`.
 
+**Admin / Discovery (F-W18):** Add these subjects to the live trust policy before the first `push` to `main`:
+
+- `repo:mentor-forge/mentorhub_admin_api:ref:refs/heads/main`
+- `repo:mentor-forge/mentorhub_admin_spa:ref:refs/heads/main`
+- `repo:mentor-forge/mentorhub_discovery_api:ref:refs/heads/main`
+- `repo:mentor-forge/mentorhub_discovery_spa:ref:refs/heads/main`
+
+Without them, `configure-aws-credentials` fails with `Not authorized to perform sts:AssumeRoleWithWebIdentity` even when the workflow YAML matches a working sibling repo.
+
 **Permissions:** `codeartifact:GetAuthorizationToken`, `GetRepositoryEndpoint`, `ReadFromRepository` on domain `mentor-forge` and repos `mentorhub-pypi`, `mentorhub-npm`; `sts:GetServiceBearerToken`.
 
 ### `GitHubActionsCodeArtifactPublish`
@@ -173,12 +182,18 @@ These repos are candidates for migration to the CodeArtifact workflow pattern wh
 | `mentorhub_customer_spa` | `docker-push.yml` | Yes | Yes | — |
 | `mentorhub_mentee_spa` | `docker-push.yml` | Yes | Yes | — |
 | `mentorhub_mentor_spa` | `docker-push.yml` | Yes | Yes | — |
+| `mentorhub_admin_api` | `docker-push.yml` | Yes* | Yes | — |
+| `mentorhub_admin_spa` | `docker-push.yml` | Yes* | Yes | — |
+| `mentorhub_discovery_api` | `docker-push.yml` | Yes* | Yes | — |
+| `mentorhub_discovery_spa` | `docker-push.yml` | Yes* | Yes | — |
 | `mentorhub_api_utils` | `publish-package.yml` | Yes (publish) | — | `v*` → PyPI |
 | `mentorhub_spa_utils` | `publish-package.yml` | Yes (publish) | — | `v*` → npm |
 | `mentorhub` | `docker-push.yml` | No | Yes | — |
 | `mentorhub_mongodb_api` | `docker-push.yml` | No | Yes | — |
 | `mentorhub_runbook_api` | `docker-push.yml` | No | Yes | — |
 | `mentorhub_cloudformation` | `cfn-lint.yml` | No | No | — |
+
+\* **Admin / Discovery:** workflow YAML matches journey repos; CI requires the repo in **`GitHubActionsCodeArtifactRead`** OIDC trust (`refs/heads/main`). See § Adding a new journey repo.
 
 Canonical workflow templates for new journey repos: [mentorhub DeveloperEdition standards — docker-push-codeartifact.yml](https://github.com/mentor-forge/mentorhub/blob/main/DeveloperEdition/standards/examples/docker-push-codeartifact.yml).
 

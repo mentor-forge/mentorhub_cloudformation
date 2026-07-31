@@ -710,7 +710,11 @@ Policy name: `CodeArtifactRead`
             "repo:mentor-forge/mentorhub_coordinator_spa:ref:refs/heads/main",
             "repo:mentor-forge/mentorhub_customer_spa:ref:refs/heads/main",
             "repo:mentor-forge/mentorhub_mentee_spa:ref:refs/heads/main",
-            "repo:mentor-forge/mentorhub_mentor_spa:ref:refs/heads/main"
+            "repo:mentor-forge/mentorhub_mentor_spa:ref:refs/heads/main",
+            "repo:mentor-forge/mentorhub_admin_api:ref:refs/heads/main",
+            "repo:mentor-forge/mentorhub_admin_spa:ref:refs/heads/main",
+            "repo:mentor-forge/mentorhub_discovery_api:ref:refs/heads/main",
+            "repo:mentor-forge/mentorhub_discovery_spa:ref:refs/heads/main"
           ]
         }
       }
