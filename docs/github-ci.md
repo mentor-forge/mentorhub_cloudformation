@@ -67,10 +67,21 @@ GitHub Actions authenticates to AWS using **web identity federation** — no sta
 
 **Admin / Discovery (F-W18):** Add these subjects to the live trust policy before the first `push` to `main`:
 
+Classic format (older repos):
+
 - `repo:mentor-forge/mentorhub_admin_api:ref:refs/heads/main`
 - `repo:mentor-forge/mentorhub_admin_spa:ref:refs/heads/main`
 - `repo:mentor-forge/mentorhub_discovery_api:ref:refs/heads/main`
 - `repo:mentor-forge/mentorhub_discovery_spa:ref:refs/heads/main`
+
+**Immutable format** (repos created after 2026-07-15 — check with `gh api repos/mentor-forge/<repo>/actions/oidc/customization/sub`):
+
+- `repo:mentor-forge@283504567/mentorhub_admin_api@1317519935:ref:refs/heads/main`
+- `repo:mentor-forge@283504567/mentorhub_admin_spa@1317520735:ref:refs/heads/main`
+- `repo:mentor-forge@283504567/mentorhub_discovery_api@1317521439:ref:refs/heads/main`
+- `repo:mentor-forge@283504567/mentorhub_discovery_spa@1317522202:ref:refs/heads/main`
+
+Requires **SRE** permission set on Shared-Services (`mentorhub-shared-sre` CLI profile) — not `Developer-Packages`.
 
 Without them, `configure-aws-credentials` fails with `Not authorized to perform sts:AssumeRoleWithWebIdentity` even when the workflow YAML matches a working sibling repo.
 

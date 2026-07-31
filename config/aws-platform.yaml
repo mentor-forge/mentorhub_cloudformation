@@ -291,10 +291,17 @@ github_ci:
 
 sso_profiles:
   shared_services: mentorhub-shared
+  shared_services_sre: mentorhub-shared-sre
   dev_workload: mentorhub-dev
   management: mentorhub-management
+  permission_sets:
+    shared_services: Developer-Packages
+    shared_services_sre: SRE
+    dev_workload: Developer
+    management: Organization-Admin
   default_roles:
     shared_services: Developer-Packages
+    shared_services_sre: SRE
     dev_workload: Developer
     management: Organization-Admin
 
