@@ -397,7 +397,7 @@ Scrape agents in the workload VPC discover ECS tasks and remote-write to AMP. AM
 
 | Environment                        | Account              | Tenancy              | Fidelity                                       |
 | ---------------------------------- | -------------------- | -------------------- | ---------------------------------------------- |
-| Local                              | Developer machine    | Single Compose stack | Fast feedback; MailHog instead of SES.         |
+| Local                              | Developer machine    | Single Compose stack | Fast feedback; Mailpit instead of SES.         |
 | Dev / Test / Training / Conference | mentorhub-dev        | Multi-tenant         | Shared infra; separate DB and config.          |
 | Staging                            | mentorhub-staging    | Single tenant        | Prod topology; may power off between releases. |
 | Production                         | mentorhub-production | Single tenant        | Live customers.                                |

@@ -180,7 +180,7 @@ DocumentDB (data tier)
 | coordinator_api | Invite / match emails |
 | mentor_api | Session notifications (future) |
 
-Local equivalent: `mailhog (mock)`.
+Local equivalent: `mailpit (mock)`.
 
 ---
 
