@@ -9,3 +9,4 @@
 | Platform overview and TO-BE architecture | [README.md](../README.md) |
 | Canonical platform state | [config/aws-platform.yaml](../config/aws-platform.yaml) |
 | GitHub org CI, secrets, and workflows | [github-ci.md](./github-ci.md) |
+| Tailscale Funnel & Spark dev host | [tailscale-funnel-spark.md](./tailscale-funnel-spark.md) |
